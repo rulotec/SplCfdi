@@ -11,9 +11,10 @@ require_once 'Domain/Models/ImpuestoTrasladadoCalculado.php';
 require_once 'Domain/Models/ResultadoCalculoComprobante.php';
 require_once 'Domain/Configuration/DecimalConfiguration.php';
 require_once 'Domain/Contracts/CfdiXmlGenerator.php';
+require_once 'Domain/Contracts/DecimalMath.php';
 require_once 'Domain/Services/InvoiceCalculator.php';
 require_once 'Domain/Services/ImpuestoTrasladadoAggregator.php';
-require_once 'Domain/Services/DecimalCalculator.php';
+require_once 'Infrastructure/Math/BcMathDecimalMath.php';
 require_once 'Infrastructure/Cfdi/SimpleCfdiXmlGenerator.php';
 
 
@@ -22,7 +23,8 @@ use SplCfdi\Domain\Models\Concepto;
 use SplCfdi\Domain\Models\Emisor;
 use SplCfdi\Domain\Models\ImpuestoTrasladado;
 use SplCfdi\Domain\Models\Receptor;
-use SplCfdi\Domain\Services\DecimalCalculator;
+
+use SplCfdi\Domain\Services\BcMathDecimalMath;
 use SplCfdi\Domain\Services\ImpuestoTrasladadoAggregator;
 use SplCfdi\Domain\Services\InvoiceCalculator;
 use SplCfdi\Infrastructure\Cfdi\SimpleCfdiXmlGenerator;
@@ -80,7 +82,7 @@ $decimalConfiguration = new DecimalConfiguration(
     maximumScale: 6
 );
 
-$decimalCalculator = new DecimalCalculator($decimalConfiguration);
+$decimalCalculator = new BcMathDecimalMath($decimalConfiguration);
 
 $aggregator = new ImpuestoTrasladadoAggregator(
     $decimalCalculator

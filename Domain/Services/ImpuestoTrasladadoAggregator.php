@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace SplCfdi\Domain\Services;
 
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
+use SplCfdi\Domain\Contracts\DecimalMath;
 
 final class ImpuestoTrasladadoAggregator
 {
     public function __construct(
-        private readonly DecimalCalculator $decimalCalculator
+        private readonly DecimalMath $decimalCalculator
     ) {}
 
     /**

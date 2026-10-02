@@ -5,8 +5,9 @@ namespace SplCfdi\Domain\Services;
 
 use InvalidArgumentException;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
+use SplCfdi\Domain\Contracts\DecimalMath;
 
-final class DecimalCalculator
+final class BcMathDecimalMath implements DecimalMath
 {
     public function __construct(
         private readonly DecimalConfiguration $configuration

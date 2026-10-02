@@ -11,11 +11,12 @@ use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
 use SplCfdi\Domain\Models\ImportesComprobante;
 use SplCfdi\Domain\Models\ImpuestosComprobante;
 use SplCfdi\Domain\Models\ResultadoCalculoComprobante;
+use SplCfdi\Domain\Contracts\DecimalMath;
 
 final class InvoiceCalculator
 {
     public function __construct(
-        private readonly DecimalCalculator $decimalCalculator,
+        private readonly DecimalMath $decimalCalculator,
         private readonly ImpuestoTrasladadoAggregator $aggregator
     ) {}
 
