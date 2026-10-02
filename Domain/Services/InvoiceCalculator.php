@@ -52,26 +52,19 @@ final class InvoiceCalculator
 
         $trasladosAgrupados = $this->aggregator->aggregate($traslados);
 
-        $subTotalFormateado = $this->decimalCalculator->format($subTotal);
-
-        $totalFormateado = $this->decimalCalculator->format(
-            $this->decimalCalculator->add(
-                $subTotal,
-                $totalImpuestosTrasladados
-            )
+        $total = $this->decimalCalculator->add(
+            $subTotal,
+            $totalImpuestosTrasladados
         );
 
         $importes = new ImportesComprobante(
-            subTotal: $subTotalFormateado,
-            total: $totalFormateado
+            subTotal: $subTotal,
+            total: $total
         );
 
         $impuestos = new ImpuestosComprobante(
             traslados: $trasladosAgrupados,
-            totalImpuestosTrasladados:
-            $this->decimalCalculator->format(
-                $totalImpuestosTrasladados
-            )
+            totalImpuestosTrasladados: $totalImpuestosTrasladados
         );
 
         return new ResultadoCalculoComprobante(
