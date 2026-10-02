@@ -3,12 +3,13 @@
 require_once 'Domain/Models/Emisor.php';
 require_once 'Domain/Models/Receptor.php';
 require_once 'Domain/Models/Concepto.php';
+require_once 'Domain/Models/ConceptoCalculado.php';
 require_once 'Domain/Models/Comprobante.php';
+require_once 'Domain/Models/ComprobanteCalculado.php';
 require_once 'Domain/Models/ImportesComprobante.php';
 require_once 'Domain/Models/ImpuestosComprobante.php';
 require_once 'Domain/Models/ImpuestoTrasladado.php';
 require_once 'Domain/Models/ImpuestoTrasladadoCalculado.php';
-require_once 'Domain/Models/ResultadoCalculoComprobante.php';
 require_once 'Domain/Configuration/DecimalConfiguration.php';
 require_once 'Domain/Contracts/CfdiXmlGenerator.php';
 require_once 'Domain/Contracts/DecimalMath.php';
@@ -93,17 +94,10 @@ $calculator = new InvoiceCalculator(
     $aggregator
 );
 
-$resultado = $calculator->calculate(
-    $comprobante
-);
-
-$comprobante->setImportesYImpuestos(
-    $resultado->importes,
-    $resultado->impuestos
-);
+$comprobanteCalculado = $calculator->calculate($comprobante);
 
 $generator = new SimpleCfdiXmlGenerator();
-$xmlCfdi = $generator->generate($comprobante);
+$xmlCfdi = $generator->generate($comprobanteCalculado);
 
 echo '<pre>';
 echo htmlspecialchars(
@@ -122,5 +116,5 @@ if ($esValido) {
 }
 
 echo '<pre>';
-var_dump($comprobante->getImportes());
+var_dump($comprobanteCalculado->importes);
 echo '</pre>';

@@ -8,7 +8,9 @@ use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\Concepto;
+use SplCfdi\Domain\Models\ConceptoCalculado;
 use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
+use SplCfdi\Domain\Models\ComprobanteCalculado;
 
 final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 {
@@ -18,15 +20,17 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 
     private DOMDocument $domDocumentCfdi;
     private DOMElement $xmlComprobante;
+    private ComprobanteCalculado $comprobanteCalculado;
     private Comprobante $comprobante;
 
-    public function generate(Comprobante $comprobante): string {
+    public function generate(ComprobanteCalculado $comprobanteCalculado): string {
 
-        $this->comprobante = $comprobante;
+        $this->comprobanteCalculado = $comprobanteCalculado;
+        $this->comprobante = $comprobanteCalculado->comprobante;
 
         if (
-            $this->comprobante->getImportes() === null ||
-            $this->comprobante->getImpuestos() === null
+            $this->comprobanteCalculado->importes === null ||
+            $this->comprobanteCalculado->impuestos === null
         ) {
             throw new \LogicException(
                 'El comprobante debe tener importes e impuestos antes de generar el XML.'
@@ -80,8 +84,8 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
     {
         $this->xmlComprobante->setAttribute('Version', $this->comprobante->version);
         $this->xmlComprobante->setAttribute('Fecha', $this->comprobante->fecha);
-        $this->xmlComprobante->setAttribute('SubTotal', $this->comprobante->getImportes()->subTotal);
-        $this->xmlComprobante->setAttribute('Total', $this->comprobante->getImportes()->total);
+        $this->xmlComprobante->setAttribute('SubTotal', $this->comprobanteCalculado->importes->subTotal);
+        $this->xmlComprobante->setAttribute('Total', $this->comprobanteCalculado->importes->total);
         $this->xmlComprobante->setAttribute('Moneda', $this->comprobante->moneda);
         $this->xmlComprobante->setAttribute('TipoDeComprobante', $this->comprobante->tipoDeComprobante);
         $this->xmlComprobante->setAttribute('Exportacion', $this->comprobante->exportacion);
@@ -145,17 +149,17 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         );
 
         /**
-         * @var Concepto $concepto
+         * @var ConceptoCalculado $conceptoCalculado
          */
-        foreach ($this->comprobante->conceptos as $concepto) {
+        foreach ($this->comprobanteCalculado->conceptos as $conceptoCalculado) {
             $elementoConcepto = $this->domDocumentCfdi->createElementNS(
                 self::NAMESPACE_CFDI,
                 'cfdi:Concepto'
             );
 
-            $this->agregarAtributosConcepto($elementoConcepto, $concepto);
+            $this->agregarAtributosConcepto($elementoConcepto, $conceptoCalculado->concepto);
 
-            $impuestos = $concepto->getImpuestosTrasladadosCalculados();
+            $impuestos = $conceptoCalculado->traslados;
             if ($impuestos) {
                 $this->agregarImpuestosConcepto($elementoConcepto, $impuestos);
             }
@@ -167,7 +171,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $this->xmlComprobante->appendChild($elementoConceptos);
     }
 
-    private function agregarAtributosConcepto($elementoConcepto, $concepto)
+    private function agregarAtributosConcepto(\DOMElement $elementoConcepto, Concepto $concepto)
     {
         $elementoConcepto->setAttribute('ClaveProdServ', $concepto->claveProdServ);
         $elementoConcepto->setAttribute('Cantidad' ,$concepto->cantidad);
@@ -205,7 +209,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 
     private function agregarImpuestos(): void
     {
-        $impuestos = $this->comprobante->getImpuestos();
+        $impuestos = $this->comprobanteCalculado->impuestos;
 
         if (
             $impuestos->totalImpuestosTrasladados === null &&

@@ -6,9 +6,6 @@ namespace SplCfdi\Domain\Models;
 
 final class Comprobante
 {
-    private ?ImportesComprobante $importes = null;
-    private ?ImpuestosComprobante $impuestos = null;
-
     /**
      * @param Concepto[] $conceptos
      */
@@ -27,29 +24,4 @@ final class Comprobante
         public readonly ?string $metodoPago = null,
         public readonly ?string $formaPago = null
     ) {}
-
-
-    public function getImportes(): ImportesComprobante
-    {
-        return $this->importes;
-    }
-
-    public function getImpuestos(): ImpuestosComprobante
-    {
-        return $this->impuestos;
-    }
-
-    public function setImportesYImpuestos(
-        ImportesComprobante $importes,
-        ImpuestosComprobante $impuestos
-    ): void {
-        if ($this->importes !== null || $this->impuestos !== null) {
-            throw new \LogicException(
-                'Los importes e impuestos del comprobante ya fueron establecidos.'
-            );
-        }
-
-        $this->importes = $importes;
-        $this->impuestos = $impuestos;
-    }
 }

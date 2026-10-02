@@ -3,36 +3,34 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Services;
 
-use InvalidArgumentException;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\Concepto;
 use SplCfdi\Domain\Models\ImpuestoTrasladado;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
 use SplCfdi\Domain\Models\ImportesComprobante;
 use SplCfdi\Domain\Models\ImpuestosComprobante;
-use SplCfdi\Domain\Models\ResultadoCalculoComprobante;
 use SplCfdi\Domain\Contracts\DecimalMath;
+use SplCfdi\Domain\Models\ComprobanteCalculado;
+use SplCfdi\Domain\Models\ConceptoCalculado;
 
 final class InvoiceCalculator
 {
     public function __construct(
-        private readonly DecimalMath $decimalCalculator,
+        private readonly DecimalMath $math,
         private readonly ImpuestoTrasladadoAggregator $aggregator
     ) {}
 
-    public function calculate(Comprobante $comprobante): ResultadoCalculoComprobante
+    public function calculate(Comprobante $comprobante): ComprobanteCalculado
     {
         $subTotal = '0.000000';
         $totalImpuestosTrasladados = '0.000000';
+        $conceptos = [];
 
         /** @var ImpuestoTrasladadoCalculado[] $traslados */
         $traslados = [];
 
         foreach ($comprobante->conceptos as $concepto) {
-            $subTotal = $this->decimalCalculator->add(
-                $subTotal,
-                $concepto->importe
-            );
+            $subTotal = $this->math->add($subTotal, $concepto->importe);
 
             $impuestosCalculados = [];
 
@@ -42,18 +40,18 @@ final class InvoiceCalculator
                 $impuestosCalculados[] = $impuestoCalculado;
                 $traslados[] = $impuestoCalculado;
 
-                $totalImpuestosTrasladados = $this->decimalCalculator->add(
+                $totalImpuestosTrasladados = $this->math->add(
                     $totalImpuestosTrasladados,
                     $impuestoCalculado->importe
                 );
             }
 
             $concepto->setImpuestosTrasladadosCalculados($impuestosCalculados);
+
+            $conceptos[] = new ConceptoCalculado($concepto, $traslados);
         }
 
-        $trasladosAgrupados = $this->aggregator->aggregate($traslados);
-
-        $total = $this->decimalCalculator->add(
+        $total = $this->math->add(
             $subTotal,
             $totalImpuestosTrasladados
         );
@@ -64,13 +62,15 @@ final class InvoiceCalculator
         );
 
         $impuestos = new ImpuestosComprobante(
-            traslados: $trasladosAgrupados,
+            traslados: $this->aggregator->aggregate($traslados),
             totalImpuestosTrasladados: $totalImpuestosTrasladados
         );
 
-        return new ResultadoCalculoComprobante(
+        return new ComprobanteCalculado(
+            comprobante: $comprobante,
+            conceptos: $conceptos,
             importes: $importes,
-            impuestos: $impuestos
+            impuestos: $impuestos,
         );
     }
 
@@ -80,7 +80,7 @@ final class InvoiceCalculator
     ): ImpuestoTrasladadoCalculado {
         $base = $concepto->importe;
 
-        $importe = $this->decimalCalculator->multiply(
+        $importe = $this->math->multiply(
             $base,
             $impuesto->tasaOCuota
         );
@@ -92,28 +92,5 @@ final class InvoiceCalculator
             tasaOCuota: $impuesto->tasaOCuota,
             importe: $importe
         );
-    }
-
-    private function determinarBase(Concepto $concepto): float
-    {
-        // Primera versión:
-        // la base corresponde al importe del concepto.
-        return $this->toFloat($concepto->importe);
-    }
-
-    private function toFloat(string $value): float
-    {
-        if (!is_numeric($value)) {
-            throw new InvalidArgumentException(
-                "El importe '{$value}' no es numérico."
-            );
-        }
-
-        return (float) $value;
-    }
-
-    private function formatAmount(float $value): string
-    {
-        return number_format($value, 2, '.', '');
     }
 }
