@@ -16,8 +16,9 @@ final class InvoiceCalculatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $math = new BcMathDecimalMath(new DecimalConfiguration(12, 6));
-        $this->calculator = new InvoiceCalculator($math, new ImpuestoTrasladadoAggregator($math));
+        $config = DecimalConfiguration::sat();
+        $math = new BcMathDecimalMath($config);
+        $this->calculator = new InvoiceCalculator($math, new ImpuestoTrasladadoAggregator($math), $config);
     }
 
     public function testConceptoSimpleConIva(): void

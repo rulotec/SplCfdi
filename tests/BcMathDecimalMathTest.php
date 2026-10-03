@@ -15,7 +15,7 @@ final class BcMathDecimalMathTest extends TestCase
 
     protected function setUp(): void   // runs before every test
     {
-        $this->math = new BcMathDecimalMath(new DecimalConfiguration(12, 6));
+        $this->math = new BcMathDecimalMath(DecimalConfiguration::sat());
     }
 
     #[DataProvider('redondeos')]

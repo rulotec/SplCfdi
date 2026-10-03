@@ -9,6 +9,7 @@ use SplCfdi\Domain\Models\ImpuestoTrasladado;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
 use SplCfdi\Domain\Models\ImportesComprobante;
 use SplCfdi\Domain\Models\ImpuestosComprobante;
+use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Contracts\DecimalMath;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\ConceptoCalculado;
@@ -17,12 +18,13 @@ final class InvoiceCalculator
 {
     public function __construct(
         private readonly DecimalMath $math,
-        private readonly ImpuestoTrasladadoAggregator $aggregator
+        private readonly ImpuestoTrasladadoAggregator $aggregator,
+        private readonly DecimalConfiguration $decimalConfig
     ) {}
 
     public function calculate(Comprobante $comprobante): ComprobanteCalculado
     {
-        $subTotal = '0.000000';
+        $subTotal = '0';
         $conceptos = [];
 
         /** @var ImpuestoTrasladadoCalculado[] $traslados */
@@ -96,7 +98,7 @@ final class InvoiceCalculator
             $base,
             $impuesto->tasaOCuota
         );
-        $importeRedondeado = $this->math->round($importe, 6);
+        $importeRedondeado = $this->math->round($importe, $this->decimalConfig->conceptScale);
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,
