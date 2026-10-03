@@ -49,19 +49,27 @@ final class InvoiceCalculator
             $conceptos[] = new ConceptoCalculado($concepto, $traslados);
         }
 
+
+
+        $decimales = $comprobante->moneda->decimales;
+        $subTotalRedondeado = $this->math->round($subTotal, $decimales);
+        $totalImpuestosTrasladadosRedondeados = $this->math->round($totalImpuestosTrasladados, $decimales);
+
         $total = $this->math->add(
-            $subTotal,
-            $totalImpuestosTrasladados
+            $subTotalRedondeado,
+            $totalImpuestosTrasladadosRedondeados
         );
 
+        $totalRedondeado = $this->math->round($total, $decimales);
+
         $importes = new ImportesComprobante(
-            subTotal: $subTotal,
-            total: $total
+            subTotal: $subTotalRedondeado,
+            total: $totalRedondeado
         );
 
         $impuestos = new ImpuestosComprobante(
             traslados: $this->aggregator->aggregate($traslados),
-            totalImpuestosTrasladados: $totalImpuestosTrasladados
+            totalImpuestosTrasladados: $totalImpuestosTrasladadosRedondeados
         );
 
         return new ComprobanteCalculado(
