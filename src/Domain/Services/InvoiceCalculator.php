@@ -94,17 +94,16 @@ final class InvoiceCalculator
     ): ImpuestoTrasladadoCalculado {
         $base = $concepto->importe;
 
-        $importe = $this->math->multiply(
-            $base,
-            $impuesto->tasaOCuota
-        );
+        $tasa = $this->math->format($impuesto->tasaOCuota, DecimalConfiguration::TASA_SCALE);
+
+        $importe = $this->math->multiply($base, $tasa);
         $importeRedondeado = $this->math->round($importe, $this->decimalConfig->conceptScale);
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,
             impuesto: $impuesto->impuesto,
             tipoFactor: $impuesto->tipoFactor,
-            tasaOCuota: $impuesto->tasaOCuota,
+            tasaOCuota: $tasa,
             importe: $importeRedondeado
         );
     }

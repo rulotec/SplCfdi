@@ -111,6 +111,17 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertSame('16.0000', $r->conceptos[0]->traslados[0]->importe);
     }
 
+    public function testNormalizaYAgrupaLaTasaConDistintoFormato(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            $this->concepto('100.00', '0.16'),
+            $this->concepto('100.00', '0.160000'),
+        ]));
+
+        $this->assertCount(1, $r->impuestos->traslados);
+        $this->assertSame('0.160000', $r->impuestos->traslados[0]->tasaOCuota);
+    }
+
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {
