@@ -82,18 +82,12 @@ final class BcMathDecimalMath implements DecimalMath
             $negative = str_starts_with($value, '-');
             $absoluteValue = ltrim($value, '+-');
 
-            if ($decimals === 0) {
-                $integerPart = $absoluteValue;
-                $fractionalPart = '';
 
-            } else {
                 [$integerPart, $fractionalPart] = array_pad(
                     explode('.', $absoluteValue, 2),
                     2,
                     ''
                     );
-            }
-
             /*
              * Ya tiene como máximo la precisión solicitada.
              */

@@ -7,16 +7,6 @@ namespace SplCfdi\Domain\Models;
 final class Concepto
 {
     /**
-     * @var ImpuestoTrasladado[]
-     */
-    public readonly array $impuestosTrasladados;
-
-    /**
-     * @var ImpuestoTrasladadoCalculado[]|null
-     */
-    private ?array $impuestosTrasladadosCalculados = null;
-
-    /**
      * @param ImpuestoTrasladado[] $impuestosTrasladados
      */
     public function __construct(
@@ -28,30 +18,6 @@ final class Concepto
         public readonly string $valorUnitario,
         public readonly string $importe,
         public readonly string $objetoImp,
-        array $impuestosTrasladados = []
-    ) {
-        $this->impuestosTrasladados = $impuestosTrasladados;
-    }
-
-    /**
-     * @return ImpuestoTrasladadoCalculado[]|null
-     */
-    public function getImpuestosTrasladadosCalculados(): ?array
-    {
-        return $this->impuestosTrasladadosCalculados;
-    }
-
-    /**
-     * @param ImpuestoTrasladadoCalculado[] $impuestos
-     */
-    public function setImpuestosTrasladadosCalculados(array $impuestos): void
-    {
-        if ($this->impuestosTrasladadosCalculados !== null) {
-            throw new \LogicException(
-                'Los impuestos calculados del concepto ya fueron establecidos.'
-            );
-        }
-
-        $this->impuestosTrasladadosCalculados = $impuestos;
-    }
+        public readonly array $impuestosTrasladados
+    ) {}
 }

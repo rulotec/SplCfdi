@@ -46,8 +46,6 @@ final class InvoiceCalculator
                 );
             }
 
-            $concepto->setImpuestosTrasladadosCalculados($impuestosCalculados);
-
             $conceptos[] = new ConceptoCalculado($concepto, $traslados);
         }
 
