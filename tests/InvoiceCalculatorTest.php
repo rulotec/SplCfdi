@@ -73,6 +73,32 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertEquals($this->calculator->calculate($c), $this->calculator->calculate($c));
     }
 
+    /** SAT: TotalImpuestosTrasladados = suma de los importes redondeados del resumen. */
+    public function testTotalEsLaSumaDeLosImportesRedondeadosDelResumen(): void
+    {
+        // 0.025 al 16% = 0.004 por concepto; dos tasas distintas → dos grupos
+        $r = $this->calculator->calculate($this->comprobante([
+            $this->concepto('0.025', '0.160000'),
+            $this->concepto('0.025', '0.160000'),   // mismo grupo: 0.008 → 0.01
+            $this->concepto('0.025', '0.100000'),   // otro grupo: 0.0025 → 0.00
+        ]));
+
+        $this->assertCount(2, $r->impuestos->traslados);
+        $this->assertSame('0.01', $r->impuestos->totalImpuestosTrasladados);
+    }
+
+    public function testCadaConceptoSoloTieneSusPropiosTraslados(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            $this->concepto('100.00'), $this->concepto('200.00'), $this->concepto('300.00'),
+        ]));
+
+        foreach ($r->conceptos as $c) {
+            $this->assertCount(1, $c->traslados);
+        }
+        $this->assertSame('32.000000', $r->conceptos[1]->traslados[0]->importe);
+    }
+
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {

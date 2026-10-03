@@ -23,7 +23,6 @@ final class InvoiceCalculator
     public function calculate(Comprobante $comprobante): ComprobanteCalculado
     {
         $subTotal = '0.000000';
-        $totalImpuestosTrasladados = '0.000000';
         $conceptos = [];
 
         /** @var ImpuestoTrasladadoCalculado[] $traslados */
@@ -32,32 +31,44 @@ final class InvoiceCalculator
         foreach ($comprobante->conceptos as $concepto) {
             $subTotal = $this->math->add($subTotal, $concepto->importe);
 
-            $impuestosCalculados = [];
-
+            $impuestosConcepto = [];
             foreach ($concepto->impuestosTrasladados as $impuesto) {
                 $impuestoCalculado = $this->calcularImpuesto($concepto, $impuesto);
-
-                $impuestosCalculados[] = $impuestoCalculado;
+                $impuestosConcepto[] = $impuestoCalculado;
                 $traslados[] = $impuestoCalculado;
-
-                $totalImpuestosTrasladados = $this->math->add(
-                    $totalImpuestosTrasladados,
-                    $impuestoCalculado->importe
-                );
             }
 
-            $conceptos[] = new ConceptoCalculado($concepto, $traslados);
+            $conceptos[] = new ConceptoCalculado($concepto, $impuestosConcepto);
         }
-
-
 
         $decimales = $comprobante->moneda->decimales;
         $subTotalRedondeado = $this->math->round($subTotal, $decimales);
-        $totalImpuestosTrasladadosRedondeados = $this->math->round($totalImpuestosTrasladados, $decimales);
+
+        $resumen = array_map(
+            fn (ImpuestoTrasladadoCalculado $t) => new ImpuestoTrasladadoCalculado(
+                base: $this->math->round($t->base, $decimales),
+                impuesto: $t->impuesto,
+                tipoFactor: $t->tipoFactor,
+                tasaOCuota: $t->tasaOCuota,
+                importe: $this->math->round($t->importe, $decimales),
+                ),
+            $this->aggregator->aggregate($traslados)
+        );
+
+        $totalTraslados = '0';
+        foreach ($resumen as $t) {
+            $totalTraslados = $this->math->add($totalTraslados, $t->importe);
+        }
+        $totalTraslados = $this->math->round($totalTraslados, $decimales);
+
+        $impuestos = new ImpuestosComprobante(
+            traslados: $resumen,
+            totalImpuestosTrasladados: $totalTraslados,
+        );
 
         $total = $this->math->add(
             $subTotalRedondeado,
-            $totalImpuestosTrasladadosRedondeados
+            $totalTraslados
         );
 
         $totalRedondeado = $this->math->round($total, $decimales);
@@ -65,11 +76,6 @@ final class InvoiceCalculator
         $importes = new ImportesComprobante(
             subTotal: $subTotalRedondeado,
             total: $totalRedondeado
-        );
-
-        $impuestos = new ImpuestosComprobante(
-            traslados: $this->aggregator->aggregate($traslados),
-            totalImpuestosTrasladados: $totalImpuestosTrasladadosRedondeados
         );
 
         return new ComprobanteCalculado(
@@ -90,13 +96,14 @@ final class InvoiceCalculator
             $base,
             $impuesto->tasaOCuota
         );
+        $importeRedondeado = $this->math->round($importe, 6);
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,
             impuesto: $impuesto->impuesto,
             tipoFactor: $impuesto->tipoFactor,
             tasaOCuota: $impuesto->tasaOCuota,
-            importe: $importe
+            importe: $importeRedondeado
         );
     }
 }
