@@ -100,6 +100,17 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertSame('32.000000', $r->conceptos[1]->traslados[0]->importe);
     }
 
+    public function testUsaLaEscalaDeConceptoConfigurada(): void
+    {
+        $config = new DecimalConfiguration(calculationScale: 12, maximumScale: 6, conceptScale: 4);
+        $math = new BcMathDecimalMath($config);
+        $calculator = new InvoiceCalculator($math, new ImpuestoTrasladadoAggregator($math), $config);
+
+        $r = $calculator->calculate($this->comprobante([$this->concepto('100.00')]));
+
+        $this->assertSame('16.0000', $r->conceptos[0]->traslados[0]->importe);
+    }
+
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {
