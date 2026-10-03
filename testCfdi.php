@@ -1,23 +1,6 @@
 <?php
 
-require_once 'Domain/Models/Emisor.php';
-require_once 'Domain/Models/Receptor.php';
-require_once 'Domain/Models/Concepto.php';
-require_once 'Domain/Models/ConceptoCalculado.php';
-require_once 'Domain/Models/Comprobante.php';
-require_once 'Domain/Models/ComprobanteCalculado.php';
-require_once 'Domain/Models/ImportesComprobante.php';
-require_once 'Domain/Models/ImpuestosComprobante.php';
-require_once 'Domain/Models/ImpuestoTrasladado.php';
-require_once 'Domain/Models/ImpuestoTrasladadoCalculado.php';
-require_once 'Domain/Configuration/DecimalConfiguration.php';
-require_once 'Domain/Contracts/CfdiXmlGenerator.php';
-require_once 'Domain/Contracts/DecimalMath.php';
-require_once 'Domain/Services/InvoiceCalculator.php';
-require_once 'Domain/Services/ImpuestoTrasladadoAggregator.php';
-require_once 'Infrastructure/Math/BcMathDecimalMath.php';
-require_once 'Infrastructure/Cfdi/SimpleCfdiXmlGenerator.php';
-
+require_once 'vendor/autoload.php';
 
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\Concepto;
@@ -25,11 +8,12 @@ use SplCfdi\Domain\Models\Emisor;
 use SplCfdi\Domain\Models\ImpuestoTrasladado;
 use SplCfdi\Domain\Models\Receptor;
 
-use SplCfdi\Domain\Services\BcMathDecimalMath;
 use SplCfdi\Domain\Services\ImpuestoTrasladadoAggregator;
 use SplCfdi\Domain\Services\InvoiceCalculator;
 use SplCfdi\Infrastructure\Cfdi\SimpleCfdiXmlGenerator;
+use SplCfdi\Infrastructure\Math\BcMathDecimalMath;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
+use SplCfdi\Domain\Models\Moneda;
 
 $emisor = new Emisor(
     rfc: 'AAA010101AAA',
@@ -65,7 +49,7 @@ $concepto = new Concepto(
 $comprobante = new Comprobante(
     version: '4.0',
     fecha: '2026-09-17T17:00:00',
-    moneda: 'MXN',
+    moneda: Moneda::mxn(),
     tipoDeComprobante: 'I',
     exportacion: '01',
     lugarExpedicion: '62000',

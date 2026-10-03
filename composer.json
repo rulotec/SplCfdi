@@ -1,0 +1,22 @@
+{
+    "name": "spl/cfdi-core",
+    "description": "Generación de CFDI 4.0, independiente de framework",
+    "type": "library",
+    "require": {
+        "php": ">=8.1",
+        "ext-bcmath": "*",
+        "ext-dom": "*"
+    },
+    "autoload": {
+        "psr-4": { "SplCfdi\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "SplCfdi\\Tests\\": "tests/" }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    }
+}

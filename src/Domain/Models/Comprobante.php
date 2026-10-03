@@ -12,7 +12,7 @@ final class Comprobante
     public function __construct(
         public readonly string $version,
         public readonly string $fecha,
-        public readonly string $moneda,
+        public readonly Moneda $moneda,
         public readonly string $tipoDeComprobante,
         public readonly string $exportacion,
         public readonly string $lugarExpedicion,

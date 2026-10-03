@@ -86,7 +86,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $this->xmlComprobante->setAttribute('Fecha', $this->comprobante->fecha);
         $this->xmlComprobante->setAttribute('SubTotal', $this->comprobanteCalculado->importes->subTotal);
         $this->xmlComprobante->setAttribute('Total', $this->comprobanteCalculado->importes->total);
-        $this->xmlComprobante->setAttribute('Moneda', $this->comprobante->moneda);
+        $this->xmlComprobante->setAttribute('Moneda', $this->comprobante->moneda->codigo);
         $this->xmlComprobante->setAttribute('TipoDeComprobante', $this->comprobante->tipoDeComprobante);
         $this->xmlComprobante->setAttribute('Exportacion', $this->comprobante->exportacion);
         $this->xmlComprobante->setAttribute('LugarExpedicion', $this->comprobante->lugarExpedicion);

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace SplCfdi\Domain\Services;
+namespace SplCfdi\Infrastructure\Math;
 
 use InvalidArgumentException;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
