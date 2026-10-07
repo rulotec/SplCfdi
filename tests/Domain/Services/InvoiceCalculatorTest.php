@@ -9,6 +9,7 @@ use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoTrasladado, Moneda, Receptor};
 use SplCfdi\Domain\Services\{ImpuestoTrasladadoAggregator, InvoiceCalculator};
 use SplCfdi\Infrastructure\Math\BcMathDecimalMath;
+use SplCfdi\Tests\Support\Fixtures;
 
 final class InvoiceCalculatorTest extends TestCase
 {
@@ -125,21 +126,11 @@ final class InvoiceCalculatorTest extends TestCase
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {
-        return new Concepto(
-            claveProdServ: '81112100', cantidad: '1', claveUnidad: 'E48', unidad: 'Servicio',
-            descripcion: 'Prueba', valorUnitario: $importe, importe: $importe, objetoImp: '02',
-            impuestosTrasladados: [new ImpuestoTrasladado('002', 'Tasa', $tasa)],
-        );
+        return Fixtures::concepto($importe, $tasa);
     }
 
     private function comprobante(array $conceptos, ?Moneda $moneda = null): Comprobante
     {
-        return new Comprobante(
-            version: '4.0', fecha: '2026-10-01T12:00:00', moneda: $moneda ?? Moneda::mxn(),
-            tipoDeComprobante: 'I', exportacion: '01', lugarExpedicion: '62000',
-            emisor: new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
-            receptor: new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01'),
-            conceptos: $conceptos,
-        );
+        return Fixtures::comprobante($conceptos, $moneda);
     }
 }
