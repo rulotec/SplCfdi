@@ -9,11 +9,14 @@ use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoTrasladado, Mo
 
 final class Fixtures
 {
-    public static function concepto(string $importe, string $tasa = '0.160000'): Concepto
-    {
+    public static function concepto(
+        string $valorUnitario,
+        string $tasa = '0.160000',
+        string $cantidad = '1',
+    ): Concepto {
         return new Concepto(
-            claveProdServ: '81112100', cantidad: '1', claveUnidad: 'E48', unidad: 'Servicio',
-            descripcion: 'Prueba', valorUnitario: $importe, importe: $importe, objetoImp: '02',
+            claveProdServ: '81112100', cantidad: $cantidad, claveUnidad: 'E48', unidad: 'Servicio',
+            descripcion: 'Prueba', valorUnitario: $valorUnitario, objetoImp: '02',
             impuestosTrasladados: [new ImpuestoTrasladado('002', 'Tasa', $tasa)],
         );
     }

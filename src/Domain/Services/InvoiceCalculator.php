@@ -31,16 +31,17 @@ final class InvoiceCalculator
         $traslados = [];
 
         foreach ($comprobante->conceptos as $concepto) {
-            $subTotal = $this->math->add($subTotal, $concepto->importe);
+            $importe = $this->calcularImporte($concepto);
+            $subTotal = $this->math->add($subTotal, $importe);
 
             $impuestosConcepto = [];
             foreach ($concepto->impuestosTrasladados as $impuesto) {
-                $impuestoCalculado = $this->calcularImpuesto($concepto, $impuesto);
+                $impuestoCalculado = $this->calcularImpuesto($importe, $impuesto);
                 $impuestosConcepto[] = $impuestoCalculado;
                 $traslados[] = $impuestoCalculado;
             }
 
-            $conceptos[] = new ConceptoCalculado($concepto, $impuestosConcepto);
+            $conceptos[] = new ConceptoCalculado($concepto, $importe, $impuestosConcepto);
         }
 
         $decimales = $comprobante->moneda->decimales;
@@ -88,23 +89,30 @@ final class InvoiceCalculator
         );
     }
 
-    private function calcularImpuesto(
-        Concepto $concepto,
-        ImpuestoTrasladado $impuesto
-    ): ImpuestoTrasladadoCalculado {
-        $base = $concepto->importe;
+    /** Cantidad × ValorUnitario, a la escala de concepto (máx. 6 decimales). */
+    private function calcularImporte(Concepto $concepto): string
+    {
+        return $this->math->round(
+            $this->math->multiply($concepto->cantidad, $concepto->valorUnitario),
+            $this->decimalConfig->conceptScale
+        );
+    }
 
+    private function calcularImpuesto(string $base, ImpuestoTrasladado $impuesto): ImpuestoTrasladadoCalculado
+    {
         $tasa = $this->math->format($impuesto->tasaOCuota, DecimalConfiguration::TASA_SCALE);
 
-        $importe = $this->math->multiply($base, $tasa);
-        $importeRedondeado = $this->math->round($importe, $this->decimalConfig->conceptScale);
+        $importe = $this->math->round(
+            $this->math->multiply($base, $tasa),
+            $this->decimalConfig->conceptScale
+        );
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,
             impuesto: $impuesto->impuesto,
             tipoFactor: $impuesto->tipoFactor,
             tasaOCuota: $tasa,
-            importe: $importeRedondeado
+            importe: $importe
         );
     }
 }

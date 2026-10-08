@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types = 1);
+
 namespace SplCfdi\Infrastructure\Cfdi;
 
 use DOMDocument;
@@ -7,7 +9,6 @@ use DOMElement;
 use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
-use SplCfdi\Domain\Models\Concepto;
 use SplCfdi\Domain\Models\ConceptoCalculado;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
 
@@ -126,7 +127,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         foreach ($this->comprobanteCalculado->conceptos as $conceptoCalculado) {
             $elementoConcepto = $this->crearElemento('Concepto');
 
-            $this->agregarAtributosConcepto($elementoConcepto, $conceptoCalculado->concepto);
+            $this->agregarAtributosConcepto($elementoConcepto, $conceptoCalculado);
 
             if ($conceptoCalculado->traslados !== []) {
                 $impuestosConcepto = $this->crearElemento('Impuestos');
@@ -140,15 +141,17 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $this->xmlComprobante->appendChild($elementoConceptos);
     }
 
-    private function agregarAtributosConcepto(DOMElement $elementoConcepto, Concepto $concepto): void
+    private function agregarAtributosConcepto(DOMElement $elementoConcepto, ConceptoCalculado $calculado): void
     {
+        $concepto = $calculado->concepto;
+
         $elementoConcepto->setAttribute('ClaveProdServ', $concepto->claveProdServ);
         $elementoConcepto->setAttribute('Cantidad', $concepto->cantidad);
         $elementoConcepto->setAttribute('ClaveUnidad', $concepto->claveUnidad);
         $elementoConcepto->setAttribute('Unidad', $concepto->unidad);
         $elementoConcepto->setAttribute('Descripcion', $concepto->descripcion);
         $elementoConcepto->setAttribute('ValorUnitario', $concepto->valorUnitario);
-        $elementoConcepto->setAttribute('Importe', $concepto->importe);
+        $elementoConcepto->setAttribute('Importe', $calculado->importe);
         $elementoConcepto->setAttribute('ObjetoImp', $concepto->objetoImp);
     }
 

@@ -20,4 +20,10 @@ final class DecimalConfigurationTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         new DecimalConfiguration(calculationScale: 12, maximumScale: 6, conceptScale: 7);
     }
+
+    public function testRechazaEscalaMaximaMayorALaDelSat(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new DecimalConfiguration(calculationScale: 14, maximumScale: 7, conceptScale: 7);
+    }
 }

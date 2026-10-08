@@ -123,6 +123,28 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertSame('0.160000', $r->impuestos->traslados[0]->tasaOCuota);
     }
 
+    public function testElImporteEsCantidadPorValorUnitario(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            Fixtures::concepto('10.00', '0.160000', '3'),
+        ]));
+
+        $this->assertSame('30.000000', $r->conceptos[0]->importe);
+        $this->assertSame('30.00', $r->importes->subTotal);
+        $this->assertSame('4.80', $r->impuestos->totalImpuestosTrasladados);
+    }
+
+    /** 1.5 × 0.333333 = 0.4999995 → a 6 decimales 0.500000; al final, 0.50. */
+    public function testElImporteSeRedondeaASeisDecimales(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            Fixtures::concepto('0.333333', '0.160000', '1.5'),
+        ]));
+
+        $this->assertSame('0.500000', $r->conceptos[0]->importe);
+        $this->assertSame('0.50', $r->importes->subTotal);
+    }
+
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {

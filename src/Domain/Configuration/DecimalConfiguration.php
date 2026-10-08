@@ -14,13 +14,18 @@ final class DecimalConfiguration
 
     public function __construct(public readonly int $calculationScale, public readonly int $maximumScale, public readonly int $conceptScale)
     {
+        if ($maximumScale < 0 || $maximumScale > self::SAT_MAX_SCALE) {
+            throw new \InvalidArgumentException(
+                sprintf('La escala máxima debe estar entre 0 y %d.', self::SAT_MAX_SCALE)
+                );
+        }
+
         if ($conceptScale < 0 || $conceptScale > $maximumScale) {
             throw new \InvalidArgumentException('La escala de concepto debe estar entre 0 y la escala máxima.');
         }
 
-        // Base (hasta maximumScale decimales) × tasa (TASA_SCALE decimales)
-        // necesita esta escala para que bcmul no trunque nada antes de redondear.
-        $minimo = $maximumScale + self::TASA_SCALE;
+        // Cantidad × ValorUnitario y Base × Tasa pueden llegar a 12 decimales exactos.
+        $minimo = self::SAT_MAX_SCALE * 2;
         if ($calculationScale < $minimo) {
             throw new \InvalidArgumentException(sprintf('La escala de cálculo debe ser al menos %d.', $minimo));
         }
