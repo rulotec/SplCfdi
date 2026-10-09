@@ -27,4 +27,20 @@ final class ConceptoTest extends TestCase
             'valor unitario vacío'           => ['', '1'],
         ];
     }
+
+    #[DataProvider('descuentosInvalidos')]
+    public function testRechazaDescuentoInvalido(string $descuento): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        Fixtures::concepto('10.00', '0.160000', '1', $descuento);
+    }
+
+    public static function descuentosInvalidos(): array
+    {
+        return [
+            '7 decimales' => ['1.1234567'],
+            'negativo'    => ['-1'],
+            'no numérico' => ['abc'],
+        ];
+    }
 }

@@ -101,6 +101,22 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $this->validator->validate($dom->saveXML());
     }
 
+    public function testElXmlConDescuentoCumpleConElEsquema(): void
+    {
+        $xml = $this->generar([Fixtures::concepto('1000.00', '0.160000', '1', '100.00')]);
+
+        $dom = new DOMDocument();
+        $dom->loadXML($xml);
+        $xp = new DOMXPath($dom);
+        $xp->registerNamespace('cfdi', self::NS_CFDI);
+
+        $this->assertSame('100.000000', $xp->evaluate('string(//cfdi:Concepto/@Descuento)'));
+        $this->assertSame('100.00', $xp->evaluate('string(/cfdi:Comprobante/@Descuento)'));
+        $this->assertSame('1044.00', $xp->evaluate('string(/cfdi:Comprobante/@Total)'));
+
+        $this->validator->validate(Fixtures::withSealPlaceholders($xml));
+    }
+
     // ---- helpers ----
 
     /** @param Concepto[] $conceptos */

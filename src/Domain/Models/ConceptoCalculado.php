@@ -6,7 +6,12 @@ final class ConceptoCalculado
 {
 
     /** @param ImpuestoTrasladadoCalculado[] $traslados */
-    public function __construct(public readonly Concepto $concepto, public readonly string $importe, public readonly array $traslados)
+    public function __construct(
+        public readonly Concepto $concepto,
+        public readonly string $importe,
+        public readonly ?string $descuento,
+        public readonly array $traslados
+    )
     {
     }
 }

@@ -145,6 +145,53 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertSame('0.50', $r->importes->subTotal);
     }
 
+    public function testElDescuentoReduceLaBaseDelImpuestoYElTotal(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            Fixtures::concepto('1000.00', '0.160000', '1', '100.00'),
+        ]));
+
+        $this->assertSame('100.000000', $r->conceptos[0]->descuento);
+        $this->assertSame('900.000000', $r->conceptos[0]->traslados[0]->base);
+        $this->assertSame('900.00', $r->impuestos->traslados[0]->base);
+        $this->assertSame('1000.00', $r->importes->subTotal);
+        $this->assertSame('100.00', $r->importes->descuento);
+        $this->assertSame('144.00', $r->impuestos->totalImpuestosTrasladados);
+        $this->assertSame('1044.00', $r->importes->total);
+    }
+
+    public function testSinDescuentoNoSeGeneraDescuento(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([Fixtures::concepto('1000.00')]));
+
+        $this->assertNull($r->importes->descuento);
+        $this->assertNull($r->conceptos[0]->descuento);
+    }
+
+    /** 3 × 0.005 = 0.015 → 0.02 (redondear cada concepto daría 0.03). */
+    public function testElDescuentoDelComprobanteEsLaSumaRedondeadaDeLosConceptos(): void
+    {
+        $r = $this->calculator->calculate($this->comprobante([
+            Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
+            Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
+            Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
+        ]));
+
+        $this->assertSame('0.02', $r->importes->descuento);
+        $this->assertSame('2.99', $r->impuestos->traslados[0]->base);              // 3 × 0.995 = 2.985
+        $this->assertSame('0.48', $r->impuestos->totalImpuestosTrasladados);       // 3 × 0.1592 = 0.4776
+        $this->assertSame('3.46', $r->importes->total);                            // 3.00 − 0.02 + 0.48
+    }
+
+    public function testRechazaUnDescuentoMayorQueElImporte(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->calculator->calculate($this->comprobante([
+            Fixtures::concepto('10.00', '0.160000', '1', '10.01'),
+        ]));
+    }
+
     // ---- helpers ----
     private function concepto(string $importe, string $tasa = '0.160000'): Concepto
     {

@@ -84,6 +84,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $this->agregarAtributoOpcional($this->xmlComprobante, 'Folio', $c->folio);
         $this->agregarAtributoOpcional($this->xmlComprobante, 'MetodoPago', $c->metodoPago);
         $this->agregarAtributoOpcional($this->xmlComprobante, 'FormaPago', $c->formaPago);
+        $this->agregarAtributoOpcional($this->xmlComprobante, 'Descuento', $calc->importes->descuento);
     }
 
     private function agregarAtributoOpcional(DOMElement $elemento, string $nombre, ?string $valor): void
@@ -152,6 +153,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $elementoConcepto->setAttribute('Descripcion', $concepto->descripcion);
         $elementoConcepto->setAttribute('ValorUnitario', $concepto->valorUnitario);
         $elementoConcepto->setAttribute('Importe', $calculado->importe);
+        $this->agregarAtributoOpcional($elementoConcepto, 'Descuento', $calculado->descuento);
         $elementoConcepto->setAttribute('ObjetoImp', $concepto->objetoImp);
     }
 

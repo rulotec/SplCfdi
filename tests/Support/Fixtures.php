@@ -13,11 +13,18 @@ final class Fixtures
         string $valorUnitario,
         string $tasa = '0.160000',
         string $cantidad = '1',
+        ?string $descuento = null,
     ): Concepto {
         return new Concepto(
-            claveProdServ: '81112100', cantidad: $cantidad, claveUnidad: 'E48', unidad: 'Servicio',
-            descripcion: 'Prueba', valorUnitario: $valorUnitario, objetoImp: '02',
+            claveProdServ: '81112100',
+            cantidad: $cantidad,
+            claveUnidad: 'E48',
+            unidad: 'Servicio',
+            descripcion: 'Prueba',
+            valorUnitario: $valorUnitario,
+            objetoImp: '02',
             impuestosTrasladados: [new ImpuestoTrasladado('002', 'Tasa', $tasa)],
+            descuento: $descuento,
         );
     }
 

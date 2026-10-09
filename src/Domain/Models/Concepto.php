@@ -16,10 +16,15 @@ final class Concepto
         public readonly string $descripcion,
         public readonly string $valorUnitario,
         public readonly string $objetoImp,
-        public readonly array $impuestosTrasladados
-        ) {
-            self::validarDecimal($cantidad, 'Cantidad');
-            self::validarDecimal($valorUnitario, 'ValorUnitario');
+        public readonly array $impuestosTrasladados,
+        public readonly ?string $descuento = null,
+    ) {
+        self::validarDecimal($cantidad, 'Cantidad');
+        self::validarDecimal($valorUnitario, 'ValorUnitario');
+
+        if ($descuento !== null) {
+            self::validarDecimal($descuento, 'Descuento');
+        }
     }
 
     private static function validarDecimal(string $valor, string $campo): void
@@ -28,9 +33,10 @@ final class Concepto
 
         if (!preg_match($patron, $valor)) {
             throw new \InvalidArgumentException(sprintf(
-                '%s inválido: "%s" (decimal no negativo, máximo %d decimales).',
-                $campo, $valor, DecimalConfiguration::SAT_MAX_SCALE
-                ));
+                    '%s inválido: "%s" (decimal no negativo, máximo %d decimales).',
+                    $campo, $valor, DecimalConfiguration::SAT_MAX_SCALE
+                )
+            );
         }
     }
 }

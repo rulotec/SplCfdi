@@ -24,28 +24,38 @@ final class InvoiceCalculator
 
     public function calculate(Comprobante $comprobante): ComprobanteCalculado
     {
-        $subTotal = '0';
-        $conceptos = [];
+        $decimales = $comprobante->moneda->decimales;
+        $escala = $this->decimalConfig->conceptScale;
 
-        /** @var ImpuestoTrasladadoCalculado[] $traslados */
-        $traslados = [];
+        $subTotal = '0';
+        $descuentoTotal = '0';
+        $hayDescuento = false;
+        $conceptos = [];
+        $todos = [];
 
         foreach ($comprobante->conceptos as $concepto) {
             $importe = $this->calcularImporte($concepto);
-            $subTotal = $this->math->add($subTotal, $importe);
+            $descuento = $this->calcularDescuento($concepto, $importe);
 
-            $impuestosConcepto = [];
-            foreach ($concepto->impuestosTrasladados as $impuesto) {
-                $impuestoCalculado = $this->calcularImpuesto($importe, $impuesto);
-                $impuestosConcepto[] = $impuestoCalculado;
-                $traslados[] = $impuestoCalculado;
+            $base = $descuento === null
+            ? $importe
+            : $this->math->round($this->math->subtract($importe, $descuento), $escala);
+
+            $subTotal = $this->math->add($subTotal, $importe);
+            if ($descuento !== null) {
+                $descuentoTotal = $this->math->add($descuentoTotal, $descuento);
+                $hayDescuento = true;
             }
 
-            $conceptos[] = new ConceptoCalculado($concepto, $importe, $impuestosConcepto);
-        }
+            $trasladosConcepto = [];
+            foreach ($concepto->impuestosTrasladados as $impuesto) {
+                $traslado = $this->calcularImpuesto($base, $impuesto);
+                $trasladosConcepto[] = $traslado;
+                $todos[] = $traslado;
+            }
 
-        $decimales = $comprobante->moneda->decimales;
-        $subTotalRedondeado = $this->math->round($subTotal, $decimales);
+            $conceptos[] = new ConceptoCalculado($concepto, $importe, $descuento, $trasladosConcepto);
+        }
 
         $resumen = array_map(
             fn (ImpuestoTrasladadoCalculado $t) => new ImpuestoTrasladadoCalculado(
@@ -54,8 +64,8 @@ final class InvoiceCalculator
                 tipoFactor: $t->tipoFactor,
                 tasaOCuota: $t->tasaOCuota,
                 importe: $this->math->round($t->importe, $decimales),
-                ),
-            $this->aggregator->aggregate($traslados)
+            ),
+            $this->aggregator->aggregate($todos)
         );
 
         $totalTraslados = '0';
@@ -64,29 +74,50 @@ final class InvoiceCalculator
         }
         $totalTraslados = $this->math->round($totalTraslados, $decimales);
 
-        $impuestos = new ImpuestosComprobante(
-            traslados: $resumen,
-            totalImpuestosTrasladados: $totalTraslados,
-        );
+        $subTotalRedondeado = $this->math->round($subTotal, $decimales);
+        $descuentoRedondeado = $hayDescuento ? $this->math->round($descuentoTotal, $decimales) : null;
 
-        $total = $this->math->add(
-            $subTotalRedondeado,
-            $totalTraslados
-        );
-
-        $totalRedondeado = $this->math->round($total, $decimales);
-
-        $importes = new ImportesComprobante(
-            subTotal: $subTotalRedondeado,
-            total: $totalRedondeado
+        // Total = SubTotal − Descuento + Traslados (retenciones se restarán después)
+        $total = $this->math->round(
+            $this->math->add(
+                $this->math->subtract($subTotalRedondeado, $descuentoRedondeado ?? '0'),
+                $totalTraslados
+            ),
+            $decimales
         );
 
         return new ComprobanteCalculado(
             comprobante: $comprobante,
             conceptos: $conceptos,
-            importes: $importes,
-            impuestos: $impuestos,
+            importes: new ImportesComprobante(
+                subTotal: $subTotalRedondeado,
+                total: $total,
+                descuento: $descuentoRedondeado,
+            ),
+            impuestos: new ImpuestosComprobante(
+                traslados: $resumen,
+                totalImpuestosTrasladados: $totalTraslados,
+            ),
         );
+    }
+
+    /** Descuento del concepto a la escala de concepto; null si no hay. */
+    private function calcularDescuento(Concepto $concepto, string $importe): ?string
+    {
+        if ($concepto->descuento === null) {
+            return null;
+        }
+
+        $descuento = $this->math->round($concepto->descuento, $this->decimalConfig->conceptScale);
+
+        if ($this->math->compare($descuento, $importe) > 0) {
+            throw new \InvalidArgumentException(sprintf(
+                'El Descuento (%s) no puede ser mayor que el Importe (%s) del concepto "%s".',
+                $descuento, $importe, $concepto->descripcion
+                ));
+        }
+
+        return $descuento;
     }
 
     /** Cantidad × ValorUnitario, a la escala de concepto (máx. 6 decimales). */
