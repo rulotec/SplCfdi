@@ -10,6 +10,8 @@ use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\ConceptoCalculado;
+use SplCfdi\Domain\Models\ImpuestoRetenidoCalculado;
+use SplCfdi\Domain\Models\ImpuestoRetenidoResumen;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
 
 final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
@@ -127,12 +129,19 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         /** @var ConceptoCalculado $conceptoCalculado */
         foreach ($this->comprobanteCalculado->conceptos as $conceptoCalculado) {
             $elementoConcepto = $this->crearElemento('Concepto');
-
             $this->agregarAtributosConcepto($elementoConcepto, $conceptoCalculado);
 
-            if ($conceptoCalculado->traslados !== []) {
+            if ($conceptoCalculado->traslados !== [] || $conceptoCalculado->retenciones !== []) {
                 $impuestosConcepto = $this->crearElemento('Impuestos');
-                $impuestosConcepto->appendChild($this->crearBloqueTraslados($conceptoCalculado->traslados));
+
+                // A nivel concepto el esquema pide Traslados y después Retenciones
+                if ($conceptoCalculado->traslados !== []) {
+                    $impuestosConcepto->appendChild($this->crearBloqueTraslados($conceptoCalculado->traslados));
+                }
+                if ($conceptoCalculado->retenciones !== []) {
+                    $impuestosConcepto->appendChild($this->crearBloqueRetenciones($conceptoCalculado->retenciones));
+                }
+
                 $elementoConcepto->appendChild($impuestosConcepto);
             }
 
@@ -141,6 +150,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 
         $this->xmlComprobante->appendChild($elementoConceptos);
     }
+
 
     private function agregarAtributosConcepto(DOMElement $elementoConcepto, ConceptoCalculado $calculado): void
     {
@@ -161,7 +171,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
     {
         $impuestos = $this->comprobanteCalculado->impuestos;
 
-        if ($impuestos->totalImpuestosTrasladados === null && $impuestos->totalImpuestosRetenidos === null) {
+        if ($impuestos->traslados === [] && $impuestos->retenciones === []) {
             return;
         }
 
@@ -170,6 +180,10 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         $this->agregarAtributoOpcional($impuestosXml, 'TotalImpuestosRetenidos', $impuestos->totalImpuestosRetenidos);
         $this->agregarAtributoOpcional($impuestosXml, 'TotalImpuestosTrasladados', $impuestos->totalImpuestosTrasladados);
 
+        // A nivel comprobante el orden es el inverso: Retenciones y después Traslados
+        if ($impuestos->retenciones !== []) {
+            $impuestosXml->appendChild($this->crearBloqueRetencionesResumen($impuestos->retenciones));
+        }
         if ($impuestos->traslados !== []) {
             $impuestosXml->appendChild($this->crearBloqueTraslados($impuestos->traslados));
         }
@@ -200,10 +214,44 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 
         $elemento->setAttribute('Base', $impuesto->base);
         $elemento->setAttribute('Impuesto', $impuesto->impuesto);
-        $elemento->setAttribute('TipoFactor', $impuesto->tipoFactor);
-        $elemento->setAttribute('TasaOCuota', $impuesto->tasaOCuota);
-        $elemento->setAttribute('Importe', $impuesto->importe);
+        $elemento->setAttribute('TipoFactor', $impuesto->tipoFactor->value);
+        // Exento: sin TasaOCuota ni Importe
+        $this->agregarAtributoOpcional($elemento, 'TasaOCuota', $impuesto->tasaOCuota);
+        $this->agregarAtributoOpcional($elemento, 'Importe', $impuesto->importe);
 
         return $elemento;
+    }
+
+    /** @param ImpuestoRetenidoCalculado[] $retenciones */
+    private function crearBloqueRetenciones(array $retenciones): DOMElement
+    {
+        $bloque = $this->crearElemento('Retenciones');
+
+        foreach ($retenciones as $retencion) {
+            $elemento = $this->crearElemento('Retencion');
+            $elemento->setAttribute('Base', $retencion->base);
+            $elemento->setAttribute('Impuesto', $retencion->impuesto);
+            $elemento->setAttribute('TipoFactor', $retencion->tipoFactor->value);
+            $elemento->setAttribute('TasaOCuota', $retencion->tasaOCuota);
+            $elemento->setAttribute('Importe', $retencion->importe);
+            $bloque->appendChild($elemento);
+        }
+
+        return $bloque;
+    }
+
+    /** @param ImpuestoRetenidoResumen[] $retenciones */
+    private function crearBloqueRetencionesResumen(array $retenciones): DOMElement
+    {
+        $bloque = $this->crearElemento('Retenciones');
+
+        foreach ($retenciones as $retencion) {
+            $elemento = $this->crearElemento('Retencion');
+            $elemento->setAttribute('Impuesto', $retencion->impuesto);
+            $elemento->setAttribute('Importe', $retencion->importe);
+            $bloque->appendChild($elemento);
+        }
+
+        return $bloque;
     }
 }

@@ -8,9 +8,11 @@ final class ImpuestosComprobante
 {
     /**
      * @param ImpuestoTrasladadoCalculado[] $traslados
+     * @param ImpuestoRetenidoResumen[] $retenciones
      */
     public function __construct(
         public readonly array $traslados = [],
+        public readonly array $retenciones = [],
         public readonly ?string $totalImpuestosTrasladados = null,
         public readonly ?string $totalImpuestosRetenidos = null
     ) {}

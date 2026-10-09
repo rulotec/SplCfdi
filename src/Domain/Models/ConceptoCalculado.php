@@ -4,14 +4,15 @@ namespace SplCfdi\Domain\Models;
 
 final class ConceptoCalculado
 {
-
-    /** @param ImpuestoTrasladadoCalculado[] $traslados */
+    /**
+     * @param ImpuestoTrasladadoCalculado[] $traslados
+     * @param ImpuestoRetenidoCalculado[] $retenciones
+     */
     public function __construct(
         public readonly Concepto $concepto,
         public readonly string $importe,
         public readonly ?string $descuento,
-        public readonly array $traslados
-    )
-    {
-    }
+        public readonly array $traslados,
+        public readonly array $retenciones,
+    ) {}
 }

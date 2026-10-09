@@ -6,6 +6,7 @@ namespace SplCfdi;
 
 use SplCfdi\Application\CfdiService;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
+use SplCfdi\Domain\Services\ImpuestoRetenidoAggregator;
 use SplCfdi\Domain\Services\{ImpuestoTrasladadoAggregator, InvoiceCalculator};
 use SplCfdi\Infrastructure\Cfdi\SimpleCfdiXmlGenerator;
 use SplCfdi\Infrastructure\Math\BcMathDecimalMath;
@@ -19,7 +20,12 @@ final class CfdiFactory
         $math = new BcMathDecimalMath($config);   // una sola configuración compartida
 
         return new CfdiService(
-            new InvoiceCalculator($math, new ImpuestoTrasladadoAggregator($math), $config),
+            new InvoiceCalculator(
+                $math,
+                new ImpuestoTrasladadoAggregator($math),
+                new ImpuestoRetenidoAggregator($math),
+                $config
+            ),
             new SimpleCfdiXmlGenerator(),
         );
     }

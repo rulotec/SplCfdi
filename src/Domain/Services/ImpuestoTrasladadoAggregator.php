@@ -25,8 +25,8 @@ final class ImpuestoTrasladadoAggregator
         foreach ($impuestos as $impuesto) {
             $clave = implode('|', [
                 $impuesto->impuesto,
-                $impuesto->tipoFactor,
-                $impuesto->tasaOCuota
+                $impuesto->tipoFactor->value,
+                $impuesto->tasaOCuota ?? '',
             ]);
 
             if (!isset($agrupados[$clave])) {
@@ -36,16 +36,15 @@ final class ImpuestoTrasladadoAggregator
 
             $existente = $agrupados[$clave];
 
-            $base = $this->decimalCalculator->add($existente->base, $impuesto->base);
-            $importe = $this->decimalCalculator->add($existente->importe, $impuesto->importe);
-
             $agrupados[$clave] = new ImpuestoTrasladadoCalculado(
-                base: $base,
+                base: $this->decimalCalculator->add($existente->base, $impuesto->base),
                 impuesto: $existente->impuesto,
                 tipoFactor: $existente->tipoFactor,
                 tasaOCuota: $existente->tasaOCuota,
-                importe: $importe
-            );
+                importe: $existente->importe === null || $impuesto->importe === null
+                ? null
+                : $this->decimalCalculator->add($existente->importe, $impuesto->importe),
+                );
         }
 
         return array_values($agrupados);
