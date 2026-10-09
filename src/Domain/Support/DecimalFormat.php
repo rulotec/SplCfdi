@@ -43,4 +43,12 @@ final class DecimalFormat
             $maxDecimals === null ? '' : sprintf(', máximo %d decimales', $maxDecimals)
         ));
     }
+
+    /** @throws \InvalidArgumentException si $scale no está entre 0 y $max */
+    public static function assertScale(int $scale, int $max, string $label): void
+    {
+        if ($scale < 0 || $scale > $max) {
+            throw new \InvalidArgumentException(sprintf('%s debe estar entre 0 y %d.', $label, $max));
+        }
+    }
 }

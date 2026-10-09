@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SplCfdi\Domain\Contracts;
 
 interface DecimalMath

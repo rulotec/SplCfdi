@@ -1,201 +1,79 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SplCfdi\Infrastructure\Math;
 
-use InvalidArgumentException;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Contracts\DecimalMath;
 use SplCfdi\Domain\Support\DecimalFormat;
 
 final class BcMathDecimalMath implements DecimalMath
 {
-    public function __construct(
-        private readonly DecimalConfiguration $configuration
-    ) {}
+    public function __construct(private readonly DecimalConfiguration $configuration) {}
 
     public function add(string $a, string $b): string
     {
-        return bcadd(
-            $a,
-            $b,
-            $this->configuration->calculationScale
-            );
+        return bcadd($a, $b, $this->configuration->calculationScale);
     }
 
     public function subtract(string $a, string $b): string
     {
-        return bcsub(
-            $a,
-            $b,
-            $this->configuration->calculationScale
-            );
+        return bcsub($a, $b, $this->configuration->calculationScale);
     }
 
     public function multiply(string $a, string $b): string
     {
-        return bcmul(
-            $a,
-            $b,
-            $this->configuration->calculationScale
-            );
-    }
-
-    public function divide(string $a, string $b): string
-    {
-        if ($this->compare($b, '0') === 0) {
-            throw new InvalidArgumentException(
-                'No se puede dividir entre cero.'
-                );
-        }
-
-        return bcdiv(
-            $a,
-            $b,
-            $this->configuration->calculationScale
-            );
+        return bcmul($a, $b, $this->configuration->calculationScale);
     }
 
     public function compare(string $a, string $b): int
     {
-        return bccomp(
-            $a,
-            $b,
-            $this->configuration->calculationScale
-            );
+        return bccomp($a, $b, $this->configuration->calculationScale);
     }
 
-    public function round(
-        string $value,
-        int $decimals
-        ): string {
-            $this->validateScale($decimals);
+    /** Redondeo half-up sobre la magnitud (−1.005 → −1.01), sobre cadenas: sin floats. */
+    public function round(string $value, int $decimals): string
+    {
+        $this->validateScale($decimals);
+        DecimalFormat::assertValid($value, 'Valor', null, true);
 
-            DecimalFormat::assertValid($value, 'Valor', null, true);   // con signo, sin límite de decimales
+        $negative = str_starts_with($value, '-');
+        [$integer, $fraction] = array_pad(explode('.', ltrim($value, '-'), 2), 2, '');
 
-            $negative = str_starts_with($value, '-');
-            $absoluteValue = ltrim($value, '+-');
+        // Dígitos conservados, sin punto decimal: "1.005" a 2 decimales → "100".
+        $digits = $integer . substr(str_pad($fraction, $decimals, '0'), 0, $decimals);
 
+        // Si el primer dígito descartado es ≥ 5, se suma una unidad al último conservado.
+        if (strlen($fraction) > $decimals && (int) $fraction[$decimals] >= 5) {
+            $digits = bcadd($digits, '1', 0);
+        }
 
-                [$integerPart, $fractionalPart] = array_pad(
-                    explode('.', $absoluteValue, 2),
-                    2,
-                    ''
-                    );
-            /*
-             * Ya tiene como máximo la precisión solicitada.
-             */
-            if (strlen($fractionalPart) <= $decimals) {
-                return $this->formatRoundedValue(
-                    $negative,
-                    $integerPart,
-                    str_pad(
-                        $fractionalPart,
-                        $decimals,
-                        '0'
-                        )
-                    );
-            }
-
-            $kept = substr(
-                $fractionalPart,
-                0,
-                $decimals
-                );
-
-            $nextDigit = (int) $fractionalPart[$decimals];
-
-            if ($nextDigit < 5) {
-                return $this->formatRoundedValue(
-                    $negative,
-                    $integerPart,
-                    $kept
-                    );
-            }
-
-            /*
-             * Sumamos una unidad a la parte conservada.
-             */
-            if ($decimals === 0) {
-                $roundedInteger = bcadd(
-                    $integerPart,
-                    '1',
-                    0
-                    );
-
-                return ($negative ? '-' : '') . $roundedInteger;
-            }
-
-            $factor = bcpow(
-                '10',
-                (string) $decimals,
-                0
-                );
-
-            $scaled = bcmul(
-                $integerPart . '.' . $kept,
-                $factor,
-                0
-                );
-
-            $scaled = bcadd(
-                $scaled,
-                '1',
-                0
-                );
-
-            $rounded = bcdiv(
-                $scaled,
-                $factor,
-                $decimals
-                );
-
-            return ($negative ? '-' : '') . $rounded;
+        return $this->compose($negative, $digits, $decimals);
     }
 
-    public function format(
-        string $value,
-        int $decimals
-        ): string {
-            $this->validateScale($decimals);
+    public function format(string $value, int $decimals): string
+    {
+        $this->validateScale($decimals);
 
-            return bcadd(
-                $value,
-                '0',
-                $decimals
-            );
+        return bcadd($value, '0', $decimals);
     }
 
     private function validateScale(int $decimals): void
     {
-        if ($decimals < 0) {
-            throw new InvalidArgumentException(
-                'La cantidad de decimales no puede ser negativa.'
-            );
-        }
-
-        if ($decimals > $this->configuration->maximumScale) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'La cantidad de decimales no puede ser mayor a %d.',
-                    $this->configuration->maximumScale
-                )
-            );
-        }
+        DecimalFormat::assertScale($decimals, $this->configuration->maximumScale, 'La cantidad de decimales');
     }
 
-    private function formatRoundedValue(
-        bool $negative,
-        string $integerPart,
-        string $fractionalPart
-    ): string {
+    /** Reinserta el punto decimal; un resultado igual a cero nunca lleva signo. */
+    private function compose(bool $negative, string $digits, int $decimals): string
+    {
+        $digits = str_pad($digits, $decimals + 1, '0', STR_PAD_LEFT);
+        $split = strlen($digits) - $decimals;
 
-        $sign = $negative ? '-' : '';
+        $integer = substr($digits, 0, $split);
+        $fraction = substr($digits, $split);
+        $sign = $negative && trim($digits, '0') !== '' ? '-' : '';
 
-        if ($fractionalPart === '') {
-            return $sign . $integerPart;
-        }
-
-        return $sign . $integerPart . '.' . $fractionalPart;
+        return $sign . $integer . ($decimals > 0 ? '.' . $fraction : '');
     }
 }

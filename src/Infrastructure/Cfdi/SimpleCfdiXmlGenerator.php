@@ -1,257 +1,222 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace SplCfdi\Infrastructure\Cfdi;
 
 use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
-use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\ConceptoCalculado;
+use SplCfdi\Domain\Models\Emisor;
 use SplCfdi\Domain\Models\ImpuestoRetenidoCalculado;
 use SplCfdi\Domain\Models\ImpuestoRetenidoResumen;
+use SplCfdi\Domain\Models\ImpuestosComprobante;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
+use SplCfdi\Domain\Models\Receptor;
 
 final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 {
-
-    private const NAMESPACE_CFDI = 'http://www.sat.gob.mx/cfd/4';
-
-    private const NAMESPACE_XSI = 'http://www.w3.org/2001/XMLSchema-instance';
-
+    private const NS_CFDI = 'http://www.sat.gob.mx/cfd/4';
+    private const NS_XSI = 'http://www.w3.org/2001/XMLSchema-instance';
+    private const NS_XMLNS = 'http://www.w3.org/2000/xmlns/';
     private const XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd';
 
-    private DOMDocument $domDocumentCfdi;
+    private DOMDocument $dom;
 
-    private DOMElement $xmlComprobante;
-
-    private ComprobanteCalculado $comprobanteCalculado;
-
-    private Comprobante $comprobante;
-
-    public function generate(ComprobanteCalculado $comprobanteCalculado): string
+    public function generate(ComprobanteCalculado $calculado): string
     {
-        $this->comprobanteCalculado = $comprobanteCalculado;
-        $this->comprobante = $comprobanteCalculado->comprobante;
+        $this->dom = new DOMDocument('1.0', 'UTF-8');
+        $this->dom->formatOutput = true;
 
-        $this->createDomDocument();
-        $this->agregarNamespaces();
-        $this->agregarAtributosComprobante();
-        $this->agregarEmisor();
-        $this->agregarReceptor();
-        $this->agregarConceptos();
-        $this->agregarImpuestos();
+        $this->dom->appendChild($this->crearComprobante($calculado));
 
-        return $this->domDocumentCfdi->saveXML();
+        return $this->dom->saveXML();
     }
 
-    private function createDomDocument(): void
+    private function crearComprobante(ComprobanteCalculado $calculado): DOMElement
     {
-        $this->domDocumentCfdi = new DOMDocument('1.0', 'UTF-8');
-        $this->domDocumentCfdi->formatOutput = true;
+        $c = $calculado->comprobante;
+        $importes = $calculado->importes;
 
-        $this->xmlComprobante = $this->crearElemento('Comprobante');
-        $this->domDocumentCfdi->appendChild($this->xmlComprobante);
+        $raiz = $this->nodo('Comprobante');
+        $raiz->setAttributeNS(self::NS_XMLNS, 'xmlns:cfdi', self::NS_CFDI);
+        $raiz->setAttributeNS(self::NS_XMLNS, 'xmlns:xsi', self::NS_XSI);
+        $raiz->setAttributeNS(self::NS_XSI, 'xsi:schemaLocation', self::NS_CFDI . ' ' . self::XSD_URL);
+
+        $this->completar($raiz, [
+            'Version' => $c->version,
+            'Serie' => $c->serie,
+            'Folio' => $c->folio,
+            'Fecha' => $c->fecha,
+            'FormaPago' => $c->formaPago,
+            'SubTotal' => $importes->subTotal,
+            'Descuento' => $importes->descuento,
+            'Moneda' => $c->moneda->codigo,
+            'Total' => $importes->total,
+            'TipoDeComprobante' => $c->tipoDeComprobante,
+            'Exportacion' => $c->exportacion,
+            'MetodoPago' => $c->metodoPago,
+            'LugarExpedicion' => $c->lugarExpedicion,
+        ], [
+            $this->crearEmisor($c->emisor),
+            $this->crearReceptor($c->receptor),
+            $this->crearConceptos($calculado->conceptos),
+            $this->crearImpuestos($calculado->impuestos),
+        ]);
+
+        return $raiz;
     }
 
-    private function crearElemento(string $nombre): DOMElement
+    private function crearEmisor(Emisor $emisor): DOMElement
     {
-        return $this->domDocumentCfdi->createElementNS(self::NAMESPACE_CFDI, 'cfdi:' . $nombre);
+        return $this->nodo('Emisor', [
+            'Rfc' => $emisor->rfc,
+            'Nombre' => $emisor->nombre,
+            'RegimenFiscal' => $emisor->regimenFiscal,
+        ]);
     }
 
-    private function agregarNamespaces(): void
+    private function crearReceptor(Receptor $receptor): DOMElement
     {
-        $this->xmlComprobante->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cfdi', self::NAMESPACE_CFDI);
-        $this->xmlComprobante->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:xsi', self::NAMESPACE_XSI);
-        $this->xmlComprobante->setAttributeNS(self::NAMESPACE_XSI, 'xsi:schemaLocation', self::NAMESPACE_CFDI . ' ' . self::XSD_URL);
+        return $this->nodo('Receptor', [
+            'Rfc' => $receptor->rfc,
+            'Nombre' => $receptor->nombre,
+            'DomicilioFiscalReceptor' => $receptor->domicilioFiscalReceptor,
+            'RegimenFiscalReceptor' => $receptor->regimenFiscalReceptor,
+            'UsoCFDI' => $receptor->usoCFDI,
+        ]);
     }
 
-    private function agregarAtributosComprobante(): void
+    /** @param ConceptoCalculado[] $conceptos */
+    private function crearConceptos(array $conceptos): DOMElement
     {
-        $c = $this->comprobante;
-        $calc = $this->comprobanteCalculado;
-
-        $this->xmlComprobante->setAttribute('Version', $c->version);
-        $this->xmlComprobante->setAttribute('Fecha', $c->fecha);
-        $this->xmlComprobante->setAttribute('SubTotal', $calc->importes->subTotal);
-        $this->xmlComprobante->setAttribute('Total', $calc->importes->total);
-        $this->xmlComprobante->setAttribute('Moneda', $c->moneda->codigo);
-        $this->xmlComprobante->setAttribute('TipoDeComprobante', $c->tipoDeComprobante);
-        $this->xmlComprobante->setAttribute('Exportacion', $c->exportacion);
-        $this->xmlComprobante->setAttribute('LugarExpedicion', $c->lugarExpedicion);
-
-        $this->agregarAtributoOpcional($this->xmlComprobante, 'Serie', $c->serie);
-        $this->agregarAtributoOpcional($this->xmlComprobante, 'Folio', $c->folio);
-        $this->agregarAtributoOpcional($this->xmlComprobante, 'MetodoPago', $c->metodoPago);
-        $this->agregarAtributoOpcional($this->xmlComprobante, 'FormaPago', $c->formaPago);
-        $this->agregarAtributoOpcional($this->xmlComprobante, 'Descuento', $calc->importes->descuento);
+        return $this->nodo('Conceptos', [], array_map(
+            fn (ConceptoCalculado $calculado) => $this->nodo('Concepto', [
+                'ClaveProdServ' => $calculado->concepto->claveProdServ,
+                'Cantidad' => $calculado->concepto->cantidad,
+                'ClaveUnidad' => $calculado->concepto->claveUnidad,
+                'Unidad' => $calculado->concepto->unidad,
+                'Descripcion' => $calculado->concepto->descripcion,
+                'ValorUnitario' => $calculado->concepto->valorUnitario,
+                'Importe' => $calculado->importe,
+                'Descuento' => $calculado->descuento,
+                'ObjetoImp' => $calculado->concepto->objetoImp,
+            ], [$this->crearImpuestosConcepto($calculado)]),
+            $conceptos
+        ));
     }
 
-    private function agregarAtributoOpcional(DOMElement $elemento, string $nombre, ?string $valor): void
+    private function crearImpuestosConcepto(ConceptoCalculado $calculado): ?DOMElement
     {
-        if ($valor !== null) {
-            $elemento->setAttribute($nombre, $valor);
-        }
+        // A nivel concepto el esquema pide Traslados y después Retenciones
+        $bloques = array_filter([
+            $this->bloqueTraslados($calculado->traslados),
+            $this->bloqueRetenciones($calculado->retenciones),
+        ]);
+
+        return $bloques === [] ? null : $this->nodo('Impuestos', [], $bloques);
     }
 
-    private function agregarEmisor(): void
+    private function crearImpuestos(ImpuestosComprobante $impuestos): ?DOMElement
     {
-        $emisor = $this->comprobante->emisor;
-        $elemento = $this->crearElemento('Emisor');
-
-        $elemento->setAttribute('Rfc', $emisor->rfc);
-        $elemento->setAttribute('Nombre', $emisor->nombre);
-        $elemento->setAttribute('RegimenFiscal', $emisor->regimenFiscal);
-
-        $this->xmlComprobante->appendChild($elemento);
-    }
-
-    private function agregarReceptor(): void
-    {
-        $receptor = $this->comprobante->receptor;
-        $elemento = $this->crearElemento('Receptor');
-
-        $elemento->setAttribute('Rfc', $receptor->rfc);
-        $elemento->setAttribute('Nombre', $receptor->nombre);
-        $elemento->setAttribute('DomicilioFiscalReceptor', $receptor->domicilioFiscalReceptor);
-        $elemento->setAttribute('RegimenFiscalReceptor', $receptor->regimenFiscalReceptor);
-        $elemento->setAttribute('UsoCFDI', $receptor->usoCFDI);
-
-        $this->xmlComprobante->appendChild($elemento);
-    }
-
-    private function agregarConceptos(): void
-    {
-        $elementoConceptos = $this->crearElemento('Conceptos');
-
-        /** @var ConceptoCalculado $conceptoCalculado */
-        foreach ($this->comprobanteCalculado->conceptos as $conceptoCalculado) {
-            $elementoConcepto = $this->crearElemento('Concepto');
-            $this->agregarAtributosConcepto($elementoConcepto, $conceptoCalculado);
-
-            if ($conceptoCalculado->traslados !== [] || $conceptoCalculado->retenciones !== []) {
-                $impuestosConcepto = $this->crearElemento('Impuestos');
-
-                // A nivel concepto el esquema pide Traslados y después Retenciones
-                if ($conceptoCalculado->traslados !== []) {
-                    $impuestosConcepto->appendChild($this->crearBloqueTraslados($conceptoCalculado->traslados));
-                }
-                if ($conceptoCalculado->retenciones !== []) {
-                    $impuestosConcepto->appendChild($this->crearBloqueRetenciones($conceptoCalculado->retenciones));
-                }
-
-                $elementoConcepto->appendChild($impuestosConcepto);
-            }
-
-            $elementoConceptos->appendChild($elementoConcepto);
-        }
-
-        $this->xmlComprobante->appendChild($elementoConceptos);
-    }
-
-
-    private function agregarAtributosConcepto(DOMElement $elementoConcepto, ConceptoCalculado $calculado): void
-    {
-        $concepto = $calculado->concepto;
-
-        $elementoConcepto->setAttribute('ClaveProdServ', $concepto->claveProdServ);
-        $elementoConcepto->setAttribute('Cantidad', $concepto->cantidad);
-        $elementoConcepto->setAttribute('ClaveUnidad', $concepto->claveUnidad);
-        $elementoConcepto->setAttribute('Unidad', $concepto->unidad);
-        $elementoConcepto->setAttribute('Descripcion', $concepto->descripcion);
-        $elementoConcepto->setAttribute('ValorUnitario', $concepto->valorUnitario);
-        $elementoConcepto->setAttribute('Importe', $calculado->importe);
-        $this->agregarAtributoOpcional($elementoConcepto, 'Descuento', $calculado->descuento);
-        $elementoConcepto->setAttribute('ObjetoImp', $concepto->objetoImp);
-    }
-
-    private function agregarImpuestos(): void
-    {
-        $impuestos = $this->comprobanteCalculado->impuestos;
-
-        if ($impuestos->traslados === [] && $impuestos->retenciones === []) {
-            return;
-        }
-
-        $impuestosXml = $this->crearElemento('Impuestos');
-
-        $this->agregarAtributoOpcional($impuestosXml, 'TotalImpuestosRetenidos', $impuestos->totalImpuestosRetenidos);
-        $this->agregarAtributoOpcional($impuestosXml, 'TotalImpuestosTrasladados', $impuestos->totalImpuestosTrasladados);
-
         // A nivel comprobante el orden es el inverso: Retenciones y después Traslados
-        if ($impuestos->retenciones !== []) {
-            $impuestosXml->appendChild($this->crearBloqueRetencionesResumen($impuestos->retenciones));
-        }
-        if ($impuestos->traslados !== []) {
-            $impuestosXml->appendChild($this->crearBloqueTraslados($impuestos->traslados));
+        $bloques = array_filter([
+            $this->bloqueRetencionesResumen($impuestos->retenciones),
+            $this->bloqueTraslados($impuestos->traslados),
+        ]);
+
+        if ($bloques === []) {
+            return null;
         }
 
-        $this->xmlComprobante->appendChild($impuestosXml);
+        return $this->nodo('Impuestos', [
+            'TotalImpuestosRetenidos' => $impuestos->totalImpuestosRetenidos,
+            'TotalImpuestosTrasladados' => $impuestos->totalImpuestosTrasladados,
+        ], $bloques);
     }
 
-    /**
-     * Concepto lleva <Impuestos><Traslados>; el resumen lleva solo <Traslados>.
-     * Este método devuelve <Traslados> y cada caller lo coloca donde corresponde.
-     *
-     * @param ImpuestoTrasladadoCalculado[] $traslados
-     */
-    private function crearBloqueTraslados(array $traslados): DOMElement
+    /** @param ImpuestoTrasladadoCalculado[] $traslados */
+    private function bloqueTraslados(array $traslados): ?DOMElement
     {
-        $trasladosXml = $this->crearElemento('Traslados');
-
-        foreach ($traslados as $traslado) {
-            $trasladosXml->appendChild($this->crearTraslado($traslado));
-        }
-
-        return $trasladosXml;
-    }
-
-    private function crearTraslado(ImpuestoTrasladadoCalculado $impuesto): DOMElement
-    {
-        $elemento = $this->crearElemento('Traslado');
-
-        $elemento->setAttribute('Base', $impuesto->base);
-        $elemento->setAttribute('Impuesto', $impuesto->impuesto);
-        $elemento->setAttribute('TipoFactor', $impuesto->tipoFactor->value);
-        // Exento: sin TasaOCuota ni Importe
-        $this->agregarAtributoOpcional($elemento, 'TasaOCuota', $impuesto->tasaOCuota);
-        $this->agregarAtributoOpcional($elemento, 'Importe', $impuesto->importe);
-
-        return $elemento;
+        return $this->bloque('Traslados', 'Traslado', $traslados, fn (ImpuestoTrasladadoCalculado $t) => [
+            'Base' => $t->base,
+            'Impuesto' => $t->impuesto,
+            'TipoFactor' => $t->tipoFactor->value,
+            'TasaOCuota' => $t->tasaOCuota,   // null si es Exento
+            'Importe' => $t->importe,         // null si es Exento
+        ]);
     }
 
     /** @param ImpuestoRetenidoCalculado[] $retenciones */
-    private function crearBloqueRetenciones(array $retenciones): DOMElement
+    private function bloqueRetenciones(array $retenciones): ?DOMElement
     {
-        $bloque = $this->crearElemento('Retenciones');
-
-        foreach ($retenciones as $retencion) {
-            $elemento = $this->crearElemento('Retencion');
-            $elemento->setAttribute('Base', $retencion->base);
-            $elemento->setAttribute('Impuesto', $retencion->impuesto);
-            $elemento->setAttribute('TipoFactor', $retencion->tipoFactor->value);
-            $elemento->setAttribute('TasaOCuota', $retencion->tasaOCuota);
-            $elemento->setAttribute('Importe', $retencion->importe);
-            $bloque->appendChild($elemento);
-        }
-
-        return $bloque;
+        return $this->bloque('Retenciones', 'Retencion', $retenciones, fn (ImpuestoRetenidoCalculado $r) => [
+            'Base' => $r->base,
+            'Impuesto' => $r->impuesto,
+            'TipoFactor' => $r->tipoFactor->value,
+            'TasaOCuota' => $r->tasaOCuota,
+            'Importe' => $r->importe,
+        ]);
     }
 
     /** @param ImpuestoRetenidoResumen[] $retenciones */
-    private function crearBloqueRetencionesResumen(array $retenciones): DOMElement
+    private function bloqueRetencionesResumen(array $retenciones): ?DOMElement
     {
-        $bloque = $this->crearElemento('Retenciones');
+        return $this->bloque('Retenciones', 'Retencion', $retenciones, fn (ImpuestoRetenidoResumen $r) => [
+            'Impuesto' => $r->impuesto,
+            'Importe' => $r->importe,
+        ]);
+    }
 
-        foreach ($retenciones as $retencion) {
-            $elemento = $this->crearElemento('Retencion');
-            $elemento->setAttribute('Impuesto', $retencion->impuesto);
-            $elemento->setAttribute('Importe', $retencion->importe);
-            $bloque->appendChild($elemento);
+    /**
+     * Contenedor con un hijo por elemento; null si no hay elementos.
+     *
+     * @param array<int, mixed> $items
+     * @param callable(mixed): array<string, ?string> $atributos
+     */
+    private function bloque(string $contenedor, string $hijo, array $items, callable $atributos): ?DOMElement
+    {
+        if ($items === []) {
+            return null;
         }
 
-        return $bloque;
+        return $this->nodo(
+            $contenedor,
+            [],
+            array_map(fn ($item) => $this->nodo($hijo, $atributos($item)), $items)
+        );
+    }
+
+    /**
+     * @param array<string, ?string> $atributos los null se omiten
+     * @param array<?DOMElement> $hijos los null se omiten
+     */
+    private function nodo(string $nombre, array $atributos = [], array $hijos = []): DOMElement
+    {
+        $nodo = $this->dom->createElementNS(self::NS_CFDI, 'cfdi:' . $nombre);
+        $this->completar($nodo, $atributos, $hijos);
+
+        return $nodo;
+    }
+
+    /**
+     * @param array<string, ?string> $atributos
+     * @param array<?DOMElement> $hijos
+     */
+    private function completar(DOMElement $nodo, array $atributos, array $hijos = []): void
+    {
+        foreach ($atributos as $nombre => $valor) {
+            if ($valor !== null) {
+                $nodo->setAttribute($nombre, $valor);
+            }
+        }
+
+        foreach ($hijos as $hijo) {
+            if ($hijo !== null) {
+                $nodo->appendChild($hijo);
+            }
+        }
     }
 }

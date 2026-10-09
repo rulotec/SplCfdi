@@ -10,7 +10,7 @@ use SplCfdi\Domain\Contracts\DecimalMath;
 final class ImpuestoTrasladadoAggregator
 {
     public function __construct(
-        private readonly DecimalMath $decimalCalculator
+        private readonly DecimalMath $math
     ) {}
 
     /**
@@ -37,13 +37,13 @@ final class ImpuestoTrasladadoAggregator
             $existente = $agrupados[$clave];
 
             $agrupados[$clave] = new ImpuestoTrasladadoCalculado(
-                base: $this->decimalCalculator->add($existente->base, $impuesto->base),
+                base: $this->math->add($existente->base, $impuesto->base),
                 impuesto: $existente->impuesto,
                 tipoFactor: $existente->tipoFactor,
                 tasaOCuota: $existente->tasaOCuota,
                 importe: $existente->importe === null || $impuesto->importe === null
                 ? null
-                : $this->decimalCalculator->add($existente->importe, $impuesto->importe),
+                : $this->math->add($existente->importe, $impuesto->importe),
                 );
         }
 

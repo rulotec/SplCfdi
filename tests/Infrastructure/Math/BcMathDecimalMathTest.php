@@ -34,6 +34,8 @@ final class BcMathDecimalMathTest extends TestCase
             'negativo'               => ['-1.005', 2, '-1.01'],
             'rellena ceros'          => ['1.1', 3, '1.100'],
             'acarreo'                => ['9.995', 2, '10.00'],
+            'negativo que redondea a cero' => ['-0.001', 2, '0.00'],
+            'negativo con acarreo desde cero' => ['-0.005', 2, '-0.01'],
         ];
     }
 

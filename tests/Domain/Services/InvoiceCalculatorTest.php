@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Domain\Services;
 
 use PHPUnit\Framework\TestCase;
+use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Models\{Comprobante, Concepto, ImpuestoRetenido, TipoFactor, Moneda};
 use SplCfdi\Domain\Services\InvoiceCalculator;
@@ -16,12 +17,12 @@ final class InvoiceCalculatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->calculator = Fixtures::calculator();
+        $this->calculator = CfdiFactory::createCalculator();
     }
 
     public function testConceptoSimpleConIva(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([$this->concepto('1000.00')]));
+        $r = $this->calculator->calculate(Fixtures::comprobante([Fixtures::concepto('1000.00')]));
 
         $this->assertSame('1000.00', $r->importes->subTotal);
         $this->assertSame('160.00', $r->impuestos->totalImpuestosTrasladados);
@@ -32,8 +33,8 @@ final class InvoiceCalculatorTest extends TestCase
     /** SAT: se redondea al final, no por concepto. */
     public function testRedondeaLaSumaYNoCadaConcepto(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
-            $this->concepto('0.05'), $this->concepto('0.05'), $this->concepto('0.05'),
+        $r = $this->calculator->calculate(Fixtures::comprobante([
+            Fixtures::concepto('0.05'), Fixtures::concepto('0.05'), Fixtures::concepto('0.05'),
         ]));
 
         // 3 × 0.008 = 0.024 → 0.02  (redondear antes daría 0.03)
@@ -45,10 +46,10 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testAgrupaPorTasa(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
-            $this->concepto('100.00', '0.160000'),
-            $this->concepto('200.00', '0.160000'),
-            $this->concepto('100.00', '0.000000'),
+        $r = $this->calculator->calculate(Fixtures::comprobante([
+            Fixtures::concepto('100.00', '0.160000'),
+            Fixtures::concepto('200.00', '0.160000'),
+            Fixtures::concepto('100.00', '0.000000'),
         ]));
 
         $this->assertCount(2, $r->impuestos->traslados);
@@ -58,7 +59,7 @@ final class InvoiceCalculatorTest extends TestCase
     public function testRespetaLosDecimalesDeLaMoneda(): void
     {
         $r = $this->calculator->calculate(
-            $this->comprobante([$this->concepto('1000')], new Moneda('JPY', 0))
+            Fixtures::comprobante([Fixtures::concepto('1000')], new Moneda('JPY', 0))
         );
 
         $this->assertSame('1000', $r->importes->subTotal);
@@ -67,7 +68,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testCalcularDosVecesDaElMismoResultado(): void
     {
-        $c = $this->comprobante([$this->concepto('1000.00')]);
+        $c = Fixtures::comprobante([Fixtures::concepto('1000.00')]);
 
         $this->assertEquals($this->calculator->calculate($c), $this->calculator->calculate($c));
     }
@@ -76,10 +77,10 @@ final class InvoiceCalculatorTest extends TestCase
     public function testTotalEsLaSumaDeLosImportesRedondeadosDelResumen(): void
     {
         // 0.025 al 16% = 0.004 por concepto; dos tasas distintas → dos grupos
-        $r = $this->calculator->calculate($this->comprobante([
-            $this->concepto('0.025', '0.160000'),
-            $this->concepto('0.025', '0.160000'),   // mismo grupo: 0.008 → 0.01
-            $this->concepto('0.025', '0.100000'),   // otro grupo: 0.0025 → 0.00
+        $r = $this->calculator->calculate(Fixtures::comprobante([
+            Fixtures::concepto('0.025', '0.160000'),
+            Fixtures::concepto('0.025', '0.160000'),   // mismo grupo: 0.008 → 0.01
+            Fixtures::concepto('0.025', '0.100000'),   // otro grupo: 0.0025 → 0.00
         ]));
 
         $this->assertCount(2, $r->impuestos->traslados);
@@ -88,8 +89,8 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testCadaConceptoSoloTieneSusPropiosTraslados(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
-            $this->concepto('100.00'), $this->concepto('200.00'), $this->concepto('300.00'),
+        $r = $this->calculator->calculate(Fixtures::comprobante([
+            Fixtures::concepto('100.00'), Fixtures::concepto('200.00'), Fixtures::concepto('300.00'),
         ]));
 
         foreach ($r->conceptos as $c) {
@@ -101,18 +102,18 @@ final class InvoiceCalculatorTest extends TestCase
     public function testUsaLaEscalaDeConceptoConfigurada(): void
     {
         $config = new DecimalConfiguration(calculationScale: 12, maximumScale: 6, conceptScale: 4);
-        $calculator = Fixtures::calculator($config);
+        $calculator = CfdiFactory::createCalculator($config);
 
-        $r = $calculator->calculate($this->comprobante([$this->concepto('100.00')]));
+        $r = $calculator->calculate(Fixtures::comprobante([Fixtures::concepto('100.00')]));
 
         $this->assertSame('16.0000', $r->conceptos[0]->traslados[0]->importe);
     }
 
     public function testNormalizaYAgrupaLaTasaConDistintoFormato(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
-            $this->concepto('100.00', '0.16'),
-            $this->concepto('100.00', '0.160000'),
+        $r = $this->calculator->calculate(Fixtures::comprobante([
+            Fixtures::concepto('100.00', '0.16'),
+            Fixtures::concepto('100.00', '0.160000'),
         ]));
 
         $this->assertCount(1, $r->impuestos->traslados);
@@ -121,7 +122,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testElImporteEsCantidadPorValorUnitario(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('10.00', '0.160000', '3'),
         ]));
 
@@ -133,7 +134,7 @@ final class InvoiceCalculatorTest extends TestCase
     /** 1.5 × 0.333333 = 0.4999995 → a 6 decimales 0.500000; al final, 0.50. */
     public function testElImporteSeRedondeaASeisDecimales(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('0.333333', '0.160000', '1.5'),
         ]));
 
@@ -143,7 +144,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testElDescuentoReduceLaBaseDelImpuestoYElTotal(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('1000.00', '0.160000', '1', '100.00'),
         ]));
 
@@ -158,7 +159,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testSinDescuentoNoSeGeneraDescuento(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([Fixtures::concepto('1000.00')]));
+        $r = $this->calculator->calculate(Fixtures::comprobante([Fixtures::concepto('1000.00')]));
 
         $this->assertNull($r->importes->descuento);
         $this->assertNull($r->conceptos[0]->descuento);
@@ -167,7 +168,7 @@ final class InvoiceCalculatorTest extends TestCase
     /** 3 × 0.005 = 0.015 → 0.02 (redondear cada concepto daría 0.03). */
     public function testElDescuentoDelComprobanteEsLaSumaRedondeadaDeLosConceptos(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
             Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
             Fixtures::concepto('1.00', '0.160000', '1', '0.005'),
@@ -183,14 +184,14 @@ final class InvoiceCalculatorTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->calculator->calculate($this->comprobante([
+        $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('10.00', '0.160000', '1', '10.01'),
         ]));
     }
 
     public function testConceptoExentoNoTieneTasaNiImporteNiTotalDeTraslados(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([Fixtures::conceptoExento('1000.00')]));
+        $r = $this->calculator->calculate(Fixtures::comprobante([Fixtures::conceptoExento('1000.00')]));
 
         $traslado = $r->impuestos->traslados[0];
         $this->assertCount(1, $r->impuestos->traslados);
@@ -204,7 +205,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testExentoYGravadoConviven(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('100.00'),
             Fixtures::conceptoExento('50.00'),
         ]));
@@ -219,7 +220,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testSinImpuestosNoHayTotalesDeImpuestos(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([Fixtures::conceptoSinImpuestos('100.00')]));
+        $r = $this->calculator->calculate(Fixtures::comprobante([Fixtures::conceptoSinImpuestos('100.00')]));
 
         $this->assertSame([], $r->impuestos->traslados);
         $this->assertSame([], $r->impuestos->retenciones);
@@ -230,7 +231,7 @@ final class InvoiceCalculatorTest extends TestCase
 
     public function testLasRetencionesSeRestanDelTotal(): void
     {
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('1000.00', '0.160000', '1', null, [
                 new ImpuestoRetenido('002', TipoFactor::Tasa, '0.106667'),   // IVA
                 new ImpuestoRetenido('001', TipoFactor::Tasa, '0.100000'),   // ISR
@@ -251,23 +252,12 @@ final class InvoiceCalculatorTest extends TestCase
     {
         $retencion = [new ImpuestoRetenido('002', TipoFactor::Tasa, '0.106667')];
 
-        $r = $this->calculator->calculate($this->comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('10.00', '0.160000', '1', null, $retencion),
             Fixtures::concepto('10.00', '0.160000', '1', null, $retencion),
         ]));
 
         $this->assertSame('2.13', $r->impuestos->totalImpuestosRetenidos);
         $this->assertSame('21.07', $r->importes->total);   // 20.00 + 3.20 − 2.13
-    }
-
-    // ---- helpers ----
-    private function concepto(string $importe, string $tasa = '0.160000'): Concepto
-    {
-        return Fixtures::concepto($importe, $tasa);
-    }
-
-    private function comprobante(array $conceptos, ?Moneda $moneda = null): Comprobante
-    {
-        return Fixtures::comprobante($conceptos, $moneda);
     }
 }

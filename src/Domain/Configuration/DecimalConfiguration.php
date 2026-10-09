@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace SplCfdi\Domain\Configuration;
 
+use SplCfdi\Domain\Support\DecimalFormat;
+
 final class DecimalConfiguration
 {
     /** Máximo de decimales que el SAT permite en importes de concepto y en monedas. */
@@ -14,15 +16,8 @@ final class DecimalConfiguration
 
     public function __construct(public readonly int $calculationScale, public readonly int $maximumScale, public readonly int $conceptScale)
     {
-        if ($maximumScale < 0 || $maximumScale > self::SAT_MAX_SCALE) {
-            throw new \InvalidArgumentException(
-                sprintf('La escala máxima debe estar entre 0 y %d.', self::SAT_MAX_SCALE)
-                );
-        }
-
-        if ($conceptScale < 0 || $conceptScale > $maximumScale) {
-            throw new \InvalidArgumentException('La escala de concepto debe estar entre 0 y la escala máxima.');
-        }
+        DecimalFormat::assertScale($maximumScale, self::SAT_MAX_SCALE, 'La escala máxima');
+        DecimalFormat::assertScale($conceptScale, $maximumScale, 'La escala de concepto');
 
         // Cantidad × ValorUnitario y Base × Tasa pueden llegar a 12 decimales exactos.
         $minimo = self::SAT_MAX_SCALE * 2;

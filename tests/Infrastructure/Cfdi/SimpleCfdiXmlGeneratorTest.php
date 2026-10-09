@@ -1,5 +1,4 @@
 <?php
-// tests/Infrastructure/Cfdi/SimpleCfdiXmlGeneratorTest.php
 declare(strict_types=1);
 
 namespace SplCfdi\Tests\Infrastructure\Cfdi;
@@ -7,6 +6,7 @@ namespace SplCfdi\Tests\Infrastructure\Cfdi;
 use DOMDocument;
 use DOMXPath;
 use PHPUnit\Framework\TestCase;
+use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Exceptions\XmlSchemaValidationException;
 use SplCfdi\Domain\Models\Concepto;
 use SplCfdi\Domain\Models\ImpuestoRetenido;
@@ -14,21 +14,22 @@ use SplCfdi\Domain\Models\TipoFactor;
 use SplCfdi\Domain\Services\InvoiceCalculator;
 use SplCfdi\Infrastructure\Cfdi\SimpleCfdiXmlGenerator;
 use SplCfdi\Infrastructure\Xml\LibXmlSchemaValidator;
+use SplCfdi\Tests\Support\AssertsCfdiSchema;
 use SplCfdi\Tests\Support\Fixtures;
 
 final class SimpleCfdiXmlGeneratorTest extends TestCase
 {
+    use AssertsCfdiSchema;
+
     private const NS_CFDI = 'http://www.sat.gob.mx/cfd/4';
 
     private InvoiceCalculator $calculator;
     private SimpleCfdiXmlGenerator $generator;
-    private LibXmlSchemaValidator $validator;
 
     protected function setUp(): void
     {
-        $this->calculator = Fixtures::calculator();
+        $this->calculator = CfdiFactory::createCalculator();
         $this->generator = new SimpleCfdiXmlGenerator();
-        $this->validator = new LibXmlSchemaValidator();
     }
 
     public function testGeneraLosImportesDelComprobante(): void
@@ -45,12 +46,10 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     {
         $xp = $this->xpath([Fixtures::concepto('1000.00')]);
 
-        $nombres = [];
-        foreach ($xp->query('/cfdi:Comprobante/*') as $nodo) {
-            $nombres[] = $nodo->localName;
-        }
-
-        $this->assertSame(['Emisor', 'Receptor', 'Conceptos', 'Impuestos'], $nombres);
+        $this->assertSame(
+            ['Emisor', 'Receptor', 'Conceptos', 'Impuestos'],
+            $this->nombresDeHijos($xp, '/cfdi:Comprobante/*')
+        );
     }
 
     public function testCadaConceptoLlevaSusPropiosTraslados(): void
@@ -73,46 +72,35 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
 
     public function testElXmlGeneradoCumpleConElEsquema(): void
     {
-        $xml = Fixtures::withSealPlaceholders($this->generar([
+        $this->assertCumpleConElEsquema($this->generar([
             Fixtures::concepto('1000.00'), Fixtures::concepto('0.05', '0.16'),
         ]));
-
-        $this->validator->validate($xml);   // lanza excepción con la lista de errores si no es válido
-
-        $this->addToAssertionCount(1);
     }
 
     /** El bug de los 12 decimales que corregimos: el XSD debe detectarlo. */
     public function testElXsdRechazaUnImporteConMasDeSeisDecimales(): void
     {
-        $dom = new DOMDocument();
-        $dom->loadXML(Fixtures::withSealPlaceholders($this->generar([Fixtures::concepto('1000.00')])));
-
-        $xp = new DOMXPath($dom);
-        $xp->registerNamespace('cfdi', self::NS_CFDI);
+        $xp = $this->xpathDe(Fixtures::withSealPlaceholders($this->generar([Fixtures::concepto('1000.00')])));
         $xp->query('//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
             ->item(0)
             ->setAttribute('Importe', '160.000000000000');
 
         $this->expectException(XmlSchemaValidationException::class);
-        $this->validator->validate($dom->saveXML());
+        (new LibXmlSchemaValidator())->validate($xp->document->saveXML());
     }
 
     public function testElXmlConDescuentoCumpleConElEsquema(): void
     {
         $xml = $this->generar([Fixtures::concepto('1000.00', '0.160000', '1', '100.00')]);
-
-        $dom = new DOMDocument();
-        $dom->loadXML($xml);
-        $xp = new DOMXPath($dom);
-        $xp->registerNamespace('cfdi', self::NS_CFDI);
+        $xp = $this->xpathDe($xml);
 
         $this->assertSame('100.000000', $xp->evaluate('string(//cfdi:Concepto/@Descuento)'));
         $this->assertSame('100.00', $xp->evaluate('string(/cfdi:Comprobante/@Descuento)'));
         $this->assertSame('1044.00', $xp->evaluate('string(/cfdi:Comprobante/@Total)'));
 
-        $this->validator->validate(Fixtures::withSealPlaceholders($xml));
+        $this->assertCumpleConElEsquema($xml);
     }
+
     public function testElXmlConExentoYRetencionesCumpleConElEsquema(): void
     {
         $xml = $this->generar([
@@ -121,26 +109,17 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
             ]),
             Fixtures::conceptoExento('50.00'),
         ]);
-
-        $dom = new DOMDocument();
-        $dom->loadXML($xml);
-        $xp = new DOMXPath($dom);
-        $xp->registerNamespace('cfdi', self::NS_CFDI);
-
-        $nombres = static function (string $consulta) use ($xp): array {
-            $r = [];
-            foreach ($xp->query($consulta) as $nodo) {
-                $r[] = $nodo->localName;
-            }
-            return $r;
-        };
+        $xp = $this->xpathDe($xml);
 
         // Orden del esquema: concepto → Traslados, Retenciones; comprobante → Retenciones, Traslados
         $this->assertSame(
             ['Traslados', 'Retenciones'],
-            $nombres('/cfdi:Comprobante/cfdi:Conceptos/cfdi:Concepto[1]/cfdi:Impuestos/*')
-            );
-        $this->assertSame(['Retenciones', 'Traslados'], $nombres('/cfdi:Comprobante/cfdi:Impuestos/*'));
+            $this->nombresDeHijos($xp, '/cfdi:Comprobante/cfdi:Conceptos/cfdi:Concepto[1]/cfdi:Impuestos/*')
+        );
+        $this->assertSame(
+            ['Retenciones', 'Traslados'],
+            $this->nombresDeHijos($xp, '/cfdi:Comprobante/cfdi:Impuestos/*')
+        );
 
         $this->assertSame('106.67', $xp->evaluate('string(/cfdi:Comprobante/cfdi:Impuestos/@TotalImpuestosRetenidos)'));
         $this->assertSame('1103.33', $xp->evaluate('string(/cfdi:Comprobante/@Total)'));   // 1050 + 160 − 106.67
@@ -149,21 +128,16 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $this->assertSame(2, (int) $xp->evaluate("count(//cfdi:Traslado[@TipoFactor='Exento'])"));
         $this->assertSame(0, (int) $xp->evaluate("count(//cfdi:Traslado[@TipoFactor='Exento'][@TasaOCuota or @Importe])"));
 
-        $this->validator->validate(Fixtures::withSealPlaceholders($xml));
+        $this->assertCumpleConElEsquema($xml);
     }
 
     public function testSinImpuestosNoSeGeneraElNodoImpuestos(): void
     {
         $xml = $this->generar([Fixtures::conceptoSinImpuestos('100.00')]);
 
-        $dom = new DOMDocument();
-        $dom->loadXML($xml);
-        $xp = new DOMXPath($dom);
-        $xp->registerNamespace('cfdi', self::NS_CFDI);
+        $this->assertSame(0, (int) $this->xpathDe($xml)->evaluate('count(/cfdi:Comprobante/cfdi:Impuestos)'));
 
-        $this->assertSame(0, (int) $xp->evaluate('count(/cfdi:Comprobante/cfdi:Impuestos)'));
-
-        $this->validator->validate(Fixtures::withSealPlaceholders($xml));
+        $this->assertCumpleConElEsquema($xml);
     }
 
     // ---- helpers ----
@@ -179,12 +153,28 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     /** @param Concepto[] $conceptos */
     private function xpath(array $conceptos): DOMXPath
     {
+        return $this->xpathDe($this->generar($conceptos));
+    }
+
+    private function xpathDe(string $xml): DOMXPath
+    {
         $dom = new DOMDocument();
-        $dom->loadXML($this->generar($conceptos));
+        $dom->loadXML($xml);
 
         $xp = new DOMXPath($dom);
         $xp->registerNamespace('cfdi', self::NS_CFDI);
 
         return $xp;
+    }
+
+    /** @return string[] */
+    private function nombresDeHijos(DOMXPath $xp, string $consulta): array
+    {
+        $nombres = [];
+        foreach ($xp->query($consulta) as $nodo) {
+            $nombres[] = $nodo->localName;
+        }
+
+        return $nombres;
     }
 }

@@ -7,11 +7,13 @@ namespace SplCfdi\Tests\Application;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
-use SplCfdi\Infrastructure\Xml\LibXmlSchemaValidator;
+use SplCfdi\Tests\Support\AssertsCfdiSchema;
 use SplCfdi\Tests\Support\Fixtures;
 
 final class CfdiServiceTest extends TestCase
 {
+    use AssertsCfdiSchema;
+
     public function testGeneraElXmlYElResultadoCalculado(): void
     {
         $cfdi = CfdiFactory::create()->generate(
@@ -28,9 +30,7 @@ final class CfdiServiceTest extends TestCase
             Fixtures::comprobante([Fixtures::concepto('1000.00'), Fixtures::concepto('0.05')])
         );
 
-        (new LibXmlSchemaValidator())->validate(Fixtures::withSealPlaceholders($cfdi->xml));
-
-        $this->addToAssertionCount(1);
+        $this->assertCumpleConElEsquema($cfdi->xml);
     }
 
     public function testPermiteUnaConfiguracionPropia(): void

@@ -54,4 +54,23 @@ final class DecimalFormatTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         DecimalFormat::matches('1', -1);
     }
+    public function testAssertScaleAceptaElRangoCerrado(): void
+    {
+        DecimalFormat::assertScale(0, 6, 'Escala');
+        DecimalFormat::assertScale(6, 6, 'Escala');
+
+        $this->addToAssertionCount(1);
+    }
+
+    #[DataProvider('escalasFueraDeRango')]
+    public function testAssertScaleRechazaFueraDeRango(int $escala): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        DecimalFormat::assertScale($escala, 6, 'Escala');
+    }
+
+    public static function escalasFueraDeRango(): array
+    {
+        return ['negativa' => [-1], 'mayor al máximo' => [7]];
+    }
 }
