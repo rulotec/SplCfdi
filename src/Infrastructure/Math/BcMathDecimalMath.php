@@ -6,6 +6,7 @@ namespace SplCfdi\Infrastructure\Math;
 use InvalidArgumentException;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Contracts\DecimalMath;
+use SplCfdi\Domain\Support\DecimalFormat;
 
 final class BcMathDecimalMath implements DecimalMath
 {
@@ -70,14 +71,7 @@ final class BcMathDecimalMath implements DecimalMath
         ): string {
             $this->validateScale($decimals);
 
-            if (!preg_match('/^-?\d+(?:\.\d+)?$/', $value)) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        'Valor decimal inválido: "%s".',
-                        $value
-                        )
-                    );
-            }
+            DecimalFormat::assertValid($value, 'Valor', null, true);   // con signo, sin límite de decimales
 
             $negative = str_starts_with($value, '-');
             $absoluteValue = ltrim($value, '+-');

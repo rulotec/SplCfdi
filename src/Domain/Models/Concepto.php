@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace SplCfdi\Domain\Models;
 
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
+use SplCfdi\Domain\Support\DecimalFormat;
 
 final class Concepto
 {
-    /** @param ImpuestoTrasladado[] $impuestosTrasladados */
+    /**
+     * @param ImpuestoTrasladado[] $impuestosTrasladados
+     * @param ImpuestoRetenido[] $impuestosRetenidos
+     */
     public function __construct(
         public readonly string $claveProdServ,
         public readonly string $cantidad,
@@ -18,25 +22,15 @@ final class Concepto
         public readonly string $objetoImp,
         public readonly array $impuestosTrasladados,
         public readonly ?string $descuento = null,
-    ) {
-        self::validarDecimal($cantidad, 'Cantidad');
-        self::validarDecimal($valorUnitario, 'ValorUnitario');
+        public readonly array $impuestosRetenidos = [],
+        ) {
+            $max = DecimalConfiguration::SAT_MAX_SCALE;
 
-        if ($descuento !== null) {
-            self::validarDecimal($descuento, 'Descuento');
-        }
-    }
+            DecimalFormat::assertValid($cantidad, 'Cantidad', $max);
+            DecimalFormat::assertValid($valorUnitario, 'ValorUnitario', $max);
 
-    private static function validarDecimal(string $valor, string $campo): void
-    {
-        $patron = sprintf('/^\d+(?:\.\d{1,%d})?$/D', DecimalConfiguration::SAT_MAX_SCALE);
-
-        if (!preg_match($patron, $valor)) {
-            throw new \InvalidArgumentException(sprintf(
-                    '%s inválido: "%s" (decimal no negativo, máximo %d decimales).',
-                    $campo, $valor, DecimalConfiguration::SAT_MAX_SCALE
-                )
-            );
-        }
+            if ($descuento !== null) {
+                DecimalFormat::assertValid($descuento, 'Descuento', $max);
+            }
     }
 }
