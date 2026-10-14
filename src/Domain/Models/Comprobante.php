@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
+use SplCfdi\Domain\Support\CodigoPostalFormat;
+
 final class Comprobante
 {
     /**
@@ -24,5 +26,7 @@ final class Comprobante
         public readonly ?string $metodoPago = null,
         public readonly ?string $formaPago = null,
         public readonly ?InformacionGlobal $informacionGlobal = null
-    ) {}
+    ) {
+        CodigoPostalFormat::assertValid($lugarExpedicion, 'LugarExpedicion');
+    }
 }
