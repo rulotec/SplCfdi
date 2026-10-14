@@ -8,6 +8,8 @@ use SplCfdi\Domain\Support\CodigoPostalFormat;
 
 final class Comprobante
 {
+    private const FORMATO_FECHA = 'Y-m-d\TH:i:s';
+
     /**
      * @param Concepto[] $conceptos
      */
@@ -28,5 +30,11 @@ final class Comprobante
         public readonly ?InformacionGlobal $informacionGlobal = null
     ) {
         CodigoPostalFormat::assertValid($lugarExpedicion, 'LugarExpedicion');
+    }
+
+    /** La Fecha tal como aparece en el XML: hora local, sin zona horaria. */
+    public function fechaCfdi(): string
+    {
+        return $this->fecha->format(self::FORMATO_FECHA);
     }
 }

@@ -6,7 +6,10 @@ namespace SplCfdi\Tests\Support;
 
 use DOMDocument;
 use DateTimeImmutable;
+use DateTimeZone;
+use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoRetenido, ImpuestoTrasladado, Moneda, Receptor, TipoFactor};
+use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\InformacionGlobal;
 
 final class Fixtures
@@ -53,41 +56,63 @@ final class Fixtures
         return self::build('Prueba sin impuestos', $valorUnitario, '01', []);
     }
 
-    /** Receptor genérico: lleva InformacionGlobal, como exige el SAT. */
-    public static function comprobante(array $conceptos, ?Moneda $moneda = null): Comprobante
+    public static function receptorPublicoEnGeneral(): Receptor
     {
-        return self::buildComprobante(
-            $conceptos,
-            $moneda,
-            new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01'),
-            new InformacionGlobal('01', '10', 2026),
-        );
+        return new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01');
     }
 
-    /** Receptor identificado: sin InformacionGlobal. */
+    public static function receptorNominativo(): Receptor
+    {
+        return new Receptor('EKU9003173C9', 'ESCUELA KEMPER URGATE', '42501', '601', 'G03');
+    }
+
+    public static function informacionGlobal(): InformacionGlobal
+    {
+        return new InformacionGlobal('01', '10', 2026);
+    }
+
+    /** Una hora después de la Fecha de los comprobantes de prueba: dentro de la ventana de 72 horas. */
+    public static function clock(): FixedClock
+    {
+        return new FixedClock(new DateTimeImmutable('2026-10-01T13:00:00', new DateTimeZone('America/Mexico_City')));
+    }
+
+    /** Público en general con InformacionGlobal: un CFDI global válido. */
+    public static function comprobante(array $conceptos, ?Moneda $moneda = null, ?DateTimeImmutable $fecha = null): Comprobante
+    {
+        return self::comprobanteCon(
+            $conceptos, self::receptorPublicoEnGeneral(), self::informacionGlobal(), $moneda, $fecha
+            );
+    }
+
+    /** Receptor identificado, sin InformacionGlobal. */
     public static function comprobanteNominativo(array $conceptos): Comprobante
     {
-        return self::buildComprobante(
-            $conceptos,
-            null,
-            new Receptor('EKU9003173C9', 'ESCUELA KEMPER URGATE', '42501', '601', 'G03'),
-            null,
-        );
+        return self::comprobanteCon($conceptos, self::receptorNominativo(), null);
     }
 
     /** @param Concepto[] $conceptos */
-    private static function buildComprobante(
+    public static function comprobanteCon(
         array $conceptos,
-        ?Moneda $moneda,
         Receptor $receptor,
         ?InformacionGlobal $informacionGlobal,
-    ): Comprobante {
-        return new Comprobante(
-            version: '4.0', fecha: new DateTimeImmutable('2026-10-01T12:00:00'), moneda: $moneda ?? Moneda::mxn(),
-            tipoDeComprobante: 'I', exportacion: '01', lugarExpedicion: '62000',
-            emisor: new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
-            receptor: $receptor, conceptos: $conceptos, informacionGlobal: $informacionGlobal,
-        );
+        ?Moneda $moneda = null,
+        ?DateTimeImmutable $fecha = null,
+        string $tipoDeComprobante = 'I',
+        string $lugarExpedicion = '62000',
+        ): Comprobante {
+            return new Comprobante(
+                version: '4.0', fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
+                moneda: $moneda ?? Moneda::mxn(), tipoDeComprobante: $tipoDeComprobante, exportacion: '01',
+                lugarExpedicion: $lugarExpedicion,
+                emisor: new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
+                receptor: $receptor, conceptos: $conceptos, informacionGlobal: $informacionGlobal,
+                );
+    }
+
+    public static function calculado(Comprobante $comprobante): ComprobanteCalculado
+    {
+        return CfdiFactory::createCalculator()->calculate($comprobante);
     }
 
     /** Simula lo que hará el Sealer, para poder validar contra el XSD antes de que exista. */

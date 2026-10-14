@@ -52,7 +52,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
             'Version' => $c->version,
             'Serie' => $c->serie,
             'Folio' => $c->folio,
-            'Fecha' => $c->fecha->format(self::FORMATO_FECHA),
+            'Fecha' => $c->fechaCfdi(),
             'FormaPago' => $c->formaPago,
             'SubTotal' => $importes->subTotal,
             'Descuento' => $importes->descuento,
