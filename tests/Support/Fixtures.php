@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Support;
 
 use DOMDocument;
+use DateTimeImmutable;
 use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoRetenido, ImpuestoTrasladado, Moneda, Receptor, TipoFactor};
+use SplCfdi\Domain\Models\InformacionGlobal;
 
 final class Fixtures
 {
@@ -51,15 +53,40 @@ final class Fixtures
         return self::build('Prueba sin impuestos', $valorUnitario, '01', []);
     }
 
-    /** @param Concepto[] $conceptos */
+    /** Receptor genérico: lleva InformacionGlobal, como exige el SAT. */
     public static function comprobante(array $conceptos, ?Moneda $moneda = null): Comprobante
     {
+        return self::buildComprobante(
+            $conceptos,
+            $moneda,
+            new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01'),
+            new InformacionGlobal('01', '10', 2026),
+        );
+    }
+
+    /** Receptor identificado: sin InformacionGlobal. */
+    public static function comprobanteNominativo(array $conceptos): Comprobante
+    {
+        return self::buildComprobante(
+            $conceptos,
+            null,
+            new Receptor('EKU9003173C9', 'ESCUELA KEMPER URGATE', '42501', '601', 'G03'),
+            null,
+        );
+    }
+
+    /** @param Concepto[] $conceptos */
+    private static function buildComprobante(
+        array $conceptos,
+        ?Moneda $moneda,
+        Receptor $receptor,
+        ?InformacionGlobal $informacionGlobal,
+    ): Comprobante {
         return new Comprobante(
-            version: '4.0', fecha: '2026-10-01T12:00:00', moneda: $moneda ?? Moneda::mxn(),
+            version: '4.0', fecha: new DateTimeImmutable('2026-10-01T12:00:00'), moneda: $moneda ?? Moneda::mxn(),
             tipoDeComprobante: 'I', exportacion: '01', lugarExpedicion: '62000',
             emisor: new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
-            receptor: new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01'),
-            conceptos: $conceptos,
+            receptor: $receptor, conceptos: $conceptos, informacionGlobal: $informacionGlobal,
         );
     }
 

@@ -14,6 +14,7 @@ use SplCfdi\Domain\Models\ImpuestoRetenidoCalculado;
 use SplCfdi\Domain\Models\ImpuestoRetenidoResumen;
 use SplCfdi\Domain\Models\ImpuestosComprobante;
 use SplCfdi\Domain\Models\ImpuestoTrasladadoCalculado;
+use SplCfdi\Domain\Models\InformacionGlobal;
 use SplCfdi\Domain\Models\Receptor;
 
 final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
@@ -22,6 +23,8 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
     private const NS_XSI = 'http://www.w3.org/2001/XMLSchema-instance';
     private const NS_XMLNS = 'http://www.w3.org/2000/xmlns/';
     private const XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd';
+
+    private const FORMATO_FECHA = 'Y-m-d\TH:i:s';
 
     private DOMDocument $dom;
 
@@ -49,7 +52,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
             'Version' => $c->version,
             'Serie' => $c->serie,
             'Folio' => $c->folio,
-            'Fecha' => $c->fecha,
+            'Fecha' => $c->fecha->format(self::FORMATO_FECHA),
             'FormaPago' => $c->formaPago,
             'SubTotal' => $importes->subTotal,
             'Descuento' => $importes->descuento,
@@ -60,6 +63,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
             'MetodoPago' => $c->metodoPago,
             'LugarExpedicion' => $c->lugarExpedicion,
         ], [
+            $this->crearInformacionGlobal($c->informacionGlobal),
             $this->crearEmisor($c->emisor),
             $this->crearReceptor($c->receptor),
             $this->crearConceptos($calculado->conceptos),
@@ -67,6 +71,19 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
         ]);
 
         return $raiz;
+    }
+
+    private function crearInformacionGlobal(?InformacionGlobal $informacion): ?DOMElement
+    {
+        if ($informacion === null) {
+            return null;
+        }
+
+        return $this->nodo('InformacionGlobal', [
+            'Periodicidad' => $informacion->periodicidad,
+            'Meses' => $informacion->meses,
+            'Año' => (string) $informacion->anio,
+        ]);
     }
 
     private function crearEmisor(Emisor $emisor): DOMElement

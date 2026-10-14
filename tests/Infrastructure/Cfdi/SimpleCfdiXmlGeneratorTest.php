@@ -40,6 +40,7 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $this->assertSame('1160.00', $xp->evaluate('string(/cfdi:Comprobante/@Total)'));
         $this->assertSame('160.00', $xp->evaluate('string(/cfdi:Comprobante/cfdi:Impuestos/@TotalImpuestosTrasladados)'));
         $this->assertSame('AAA010101AAA', $xp->evaluate('string(/cfdi:Comprobante/cfdi:Emisor/@Rfc)'));
+        $this->assertSame('2026-10-01T12:00:00', $xp->evaluate('string(/cfdi:Comprobante/@Fecha)'));
     }
 
     public function testLosHijosDelComprobanteVanEnElOrdenDelEsquema(): void
@@ -47,7 +48,7 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $xp = $this->xpath([Fixtures::concepto('1000.00')]);
 
         $this->assertSame(
-            ['Emisor', 'Receptor', 'Conceptos', 'Impuestos'],
+            ['InformacionGlobal', 'Emisor', 'Receptor', 'Conceptos', 'Impuestos'],
             $this->nombresDeHijos($xp, '/cfdi:Comprobante/*')
         );
     }
@@ -136,6 +137,32 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $xml = $this->generar([Fixtures::conceptoSinImpuestos('100.00')]);
 
         $this->assertSame(0, (int) $this->xpathDe($xml)->evaluate('count(/cfdi:Comprobante/cfdi:Impuestos)'));
+
+        $this->assertCumpleConElEsquema($xml);
+    }
+
+    public function testGeneraLaInformacionGlobalDelPublicoEnGeneral(): void
+    {
+        $xml = $this->generar([Fixtures::concepto('100.00')]);
+        $xp = $this->xpathDe($xml);
+
+        $nodo = $xp->query('/cfdi:Comprobante/cfdi:InformacionGlobal')->item(0);
+
+        $this->assertNotNull($nodo);
+        $this->assertSame('01', $nodo->getAttribute('Periodicidad'));
+        $this->assertSame('10', $nodo->getAttribute('Meses'));
+        $this->assertSame('2026', $nodo->getAttribute('Año'));
+
+        $this->assertCumpleConElEsquema($xml);
+    }
+
+    public function testSinInformacionGlobalNoSeGeneraElNodo(): void
+    {
+        $xml = $this->generator->generate(
+            $this->calculator->calculate(Fixtures::comprobanteNominativo([Fixtures::concepto('100.00')]))
+            );
+
+        $this->assertSame(0, (int) $this->xpathDe($xml)->evaluate('count(/cfdi:Comprobante/cfdi:InformacionGlobal)'));
 
         $this->assertCumpleConElEsquema($xml);
     }

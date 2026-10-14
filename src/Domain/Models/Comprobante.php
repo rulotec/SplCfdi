@@ -11,7 +11,7 @@ final class Comprobante
      */
     public function __construct(
         public readonly string $version,
-        public readonly string $fecha,
+        public readonly \DateTimeImmutable $fecha,
         public readonly Moneda $moneda,
         public readonly string $tipoDeComprobante,
         public readonly string $exportacion,
@@ -22,6 +22,7 @@ final class Comprobante
         public readonly ?string $serie = null,
         public readonly ?string $folio = null,
         public readonly ?string $metodoPago = null,
-        public readonly ?string $formaPago = null
+        public readonly ?string $formaPago = null,
+        public readonly ?InformacionGlobal $informacionGlobal = null
     ) {}
 }
