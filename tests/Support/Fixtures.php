@@ -56,6 +56,12 @@ final class Fixtures
         return self::build('Prueba sin impuestos', $valorUnitario, '01', []);
     }
 
+    /** Para probar combinaciones de ObjetoImp / traslados que los demás helpers no producen. */
+    public static function conceptoConObjetoImp(string $valorUnitario, string $objetoImp, array $traslados = []): Concepto
+    {
+        return self::build('Prueba objeto', $valorUnitario, $objetoImp, $traslados);
+    }
+
     public static function receptorPublicoEnGeneral(): Receptor
     {
         return new Receptor('XAXX010101000', 'PUBLICO EN GENERAL', '62000', '616', 'S01');
@@ -77,12 +83,13 @@ final class Fixtures
         return new FixedClock(new DateTimeImmutable('2026-10-01T13:00:00', new DateTimeZone('America/Mexico_City')));
     }
 
-    /** Público en general con InformacionGlobal: un CFDI global válido. */
+    /** Público en general con InformacionGlobal, PUE y forma de pago: un CFDI global válido. */
     public static function comprobante(array $conceptos, ?Moneda $moneda = null, ?DateTimeImmutable $fecha = null): Comprobante
     {
         return self::comprobanteCon(
-            $conceptos, self::receptorPublicoEnGeneral(), self::informacionGlobal(), $moneda, $fecha
-            );
+            $conceptos, self::receptorPublicoEnGeneral(), self::informacionGlobal(), $moneda, $fecha,
+            metodoPago: 'PUE', formaPago: '01',
+        );
     }
 
     /** Receptor identificado, sin InformacionGlobal. */
@@ -100,14 +107,24 @@ final class Fixtures
         ?DateTimeImmutable $fecha = null,
         string $tipoDeComprobante = 'I',
         string $lugarExpedicion = '62000',
-        ): Comprobante {
-            return new Comprobante(
-                version: '4.0', fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
-                moneda: $moneda ?? Moneda::mxn(), tipoDeComprobante: $tipoDeComprobante, exportacion: '01',
-                lugarExpedicion: $lugarExpedicion,
-                emisor: new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
-                receptor: $receptor, conceptos: $conceptos, informacionGlobal: $informacionGlobal,
-                );
+        ?string $metodoPago = null,
+        ?string $formaPago = null,
+        ?Emisor $emisor = null,
+    ): Comprobante {
+        return new Comprobante(
+            version: '4.0',
+            fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
+            moneda: $moneda ?? Moneda::mxn(),
+            tipoDeComprobante: $tipoDeComprobante,
+            exportacion: '01',
+            lugarExpedicion: $lugarExpedicion,
+            emisor: $emisor ?? new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
+            receptor: $receptor,
+            conceptos: $conceptos,
+            metodoPago: $metodoPago,
+            formaPago: $formaPago,
+            informacionGlobal: $informacionGlobal,
+        );
     }
 
     public static function calculado(Comprobante $comprobante): ComprobanteCalculado

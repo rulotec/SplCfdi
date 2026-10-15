@@ -19,6 +19,15 @@ final class RuleSet implements Rule
             new RuleInformacionGlobal(),
             new RuleDomicilioReceptorGenerico(),
             new RuleSinImpuestosEnTrasladoOPago(),
+            new RuleInformacionGlobalAnio(),
+            new RuleBimestralSoloRif(),
+            new RuleMetodoPagoPueEnGlobal(),
+            new RuleDescuentoPorTipoDeComprobante(),
+            new RuleFormatoRfc(),
+            new RuleRegimenUsoCfdi(),
+            new RuleObjetoImpCoherente(),
+            new RuleBaseNoCero(),
+            new RuleTotalNoNegativo(),
         ]);
     }
 
