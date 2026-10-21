@@ -1,5 +1,7 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
+
 namespace SplCfdi\Domain\Models;
 
 final class ConceptoCalculado
@@ -12,6 +14,7 @@ final class ConceptoCalculado
         public readonly Concepto $concepto,
         public readonly string $importe,
         public readonly ?string $descuento,
+        public readonly string $base,          // Importe − Descuento: base de cada impuesto del concepto
         public readonly array $traslados,
         public readonly array $retenciones,
     ) {}

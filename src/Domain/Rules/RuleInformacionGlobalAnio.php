@@ -22,7 +22,7 @@ final class RuleInformacionGlobalAnio implements Rule
             return [new Violation('informacion-global-anio', sprintf(
                 'InformacionGlobal Año (%d) debe ser el año de la Fecha (%d) o el anterior (%d).',
                 $info->anio, $anioFecha, $anioFecha - 1
-            ))];
+            ), 'InformacionGlobal.Año')];
         }
 
         return [];

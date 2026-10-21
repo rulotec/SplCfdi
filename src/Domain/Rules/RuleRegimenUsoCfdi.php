@@ -36,14 +36,14 @@ final class RuleRegimenUsoCfdi implements Rule
             $violaciones[] = new Violation('uso-cfdi-persona', sprintf(
                 'UsoCFDI "%s" no aplica a una persona %s (RFC %s).',
                 $receptor->usoCFDI, $longitud === 12 ? 'moral' : 'física', $receptor->rfc
-            ));
+            ), 'Receptor.UsoCFDI');
         }
 
         if (!in_array($receptor->regimenFiscalReceptor, $uso['regimenes'], true)) {
             $violaciones[] = new Violation('uso-cfdi-regimen', sprintf(
                 'UsoCFDI "%s" no es válido para el RegimenFiscalReceptor "%s".',
                 $receptor->usoCFDI, $receptor->regimenFiscalReceptor
-            ));
+            ), 'Receptor.UsoCFDI');
         }
 
         return $violaciones;

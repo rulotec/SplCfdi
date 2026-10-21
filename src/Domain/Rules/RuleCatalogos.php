@@ -20,43 +20,42 @@ final class RuleCatalogos implements Rule
     public function check(ComprobanteCalculado $calculado): array
     {
         $c = $calculado->comprobante;
-        $v = [];
 
-        array_push($v, ...$this->verificar(CatalogName::TIPO_DE_COMPROBANTE, 'TipoDeComprobante', $c->tipoDeComprobante));
-        array_push($v, ...$this->verificar(CatalogName::EXPORTACION, 'Exportacion', $c->exportacion));
-        array_push($v, ...$this->verificar(CatalogName::METODO_PAGO, 'MetodoPago', $c->metodoPago));
-        array_push($v, ...$this->verificar(CatalogName::FORMA_PAGO, 'FormaPago', $c->formaPago));
-        array_push($v, ...$this->verificar(CatalogName::REGIMEN_FISCAL, 'RegimenFiscal del Emisor', $c->emisor->regimenFiscal));
-        array_push($v, ...$this->verificar(CatalogName::REGIMEN_FISCAL, 'RegimenFiscalReceptor', $c->receptor->regimenFiscalReceptor));
-        array_push($v, ...$this->verificar(CatalogName::USO_CFDI, 'UsoCFDI', $c->receptor->usoCFDI));
-
-        if ($c->informacionGlobal !== null) {
-            array_push($v, ...$this->verificar(CatalogName::PERIODICIDAD, 'Periodicidad', $c->informacionGlobal->periodicidad));
-            array_push($v, ...$this->verificar(CatalogName::MESES, 'Meses', $c->informacionGlobal->meses));
-        }
+        // [catálogo, etiqueta para el mensaje, ruta en el XML, valor]
+        $revisar = [
+            [CatalogName::TIPO_DE_COMPROBANTE, 'TipoDeComprobante', 'TipoDeComprobante', $c->tipoDeComprobante],
+            [CatalogName::EXPORTACION, 'Exportacion', 'Exportacion', $c->exportacion],
+            [CatalogName::METODO_PAGO, 'MetodoPago', 'MetodoPago', $c->metodoPago],
+            [CatalogName::FORMA_PAGO, 'FormaPago', 'FormaPago', $c->formaPago],
+            [CatalogName::REGIMEN_FISCAL, 'RegimenFiscal del Emisor', 'Emisor.RegimenFiscal', $c->emisor->regimenFiscal],
+            [CatalogName::REGIMEN_FISCAL, 'RegimenFiscalReceptor', 'Receptor.RegimenFiscalReceptor', $c->receptor->regimenFiscalReceptor],
+            [CatalogName::USO_CFDI, 'UsoCFDI', 'Receptor.UsoCFDI', $c->receptor->usoCFDI],
+            [CatalogName::PERIODICIDAD, 'Periodicidad', 'InformacionGlobal.Periodicidad', $c->informacionGlobal?->periodicidad],
+            [CatalogName::MESES, 'Meses', 'InformacionGlobal.Meses', $c->informacionGlobal?->meses],
+        ];
 
         foreach ($calculado->conceptos as $i => $cc) {
-            $contexto = sprintf('Concepto %d: ', $i + 1);
+            $etiqueta = Ubicacion::concepto($i, $cc);
+            $revisar[] = [CatalogName::OBJETO_IMP, "$etiqueta: ObjetoImp", Ubicacion::campoConcepto($i, 'ObjetoImp'), $cc->concepto->objetoImp];
 
-            array_push($v, ...$this->verificar(CatalogName::OBJETO_IMP, 'ObjetoImp', $cc->concepto->objetoImp, $contexto));
-
-            foreach ([...$cc->traslados, ...$cc->retenciones] as $impuesto) {
-                array_push($v, ...$this->verificar(CatalogName::IMPUESTO, 'Impuesto', $impuesto->impuesto, $contexto));
+            foreach ($cc->traslados as $t) {
+                $revisar[] = [CatalogName::IMPUESTO, "$etiqueta: Impuesto", Ubicacion::campoConcepto($i, 'Traslado.Impuesto'), $t->impuesto];
+            }
+            foreach ($cc->retenciones as $r) {
+                $revisar[] = [CatalogName::IMPUESTO, "$etiqueta: Impuesto", Ubicacion::campoConcepto($i, 'Retencion.Impuesto'), $r->impuesto];
             }
         }
 
-        return $v;
-    }
-
-    /** @return Violation[] vacío si el valor es null (campo opcional) o existe */
-    private function verificar(string $catalogo, string $campo, ?string $valor, string $contexto = ''): array
-    {
-        if ($valor === null || $this->catalogs->get($catalogo)->contains($valor)) {
-            return [];
+        $violaciones = [];
+        foreach ($revisar as [$catalogo, $etiqueta, $campo, $valor]) {
+            // null: campo opcional no informado
+            if ($valor !== null && !$this->catalogs->get($catalogo)->contains($valor)) {
+                $violaciones[] = new Violation('catalogo-invalido', sprintf(
+                    '%s "%s" no existe en el catálogo %s.', $etiqueta, $valor, $catalogo
+                ), $campo);
+            }
         }
 
-        return [new Violation('catalogo-invalido', sprintf(
-            '%s%s "%s" no existe en el catálogo %s.', $contexto, $campo, $valor, $catalogo
-        ))];
+        return $violaciones;
     }
 }

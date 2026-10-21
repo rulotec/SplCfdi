@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
 
+use SplCfdi\Domain\Catalogs\Claves\TipoDeComprobante;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\ConceptoCalculado;
 
@@ -13,7 +14,7 @@ final class RuleDescuentoPorTipoDeComprobante implements Rule
     public function check(ComprobanteCalculado $calculado): array
     {
         $tipo = $calculado->comprobante->tipoDeComprobante;
-        if (!in_array($tipo, ['T', 'P'], true)) {
+        if (!TipoDeComprobante::sinImpuestosNiDescuento($tipo)) {
             return [];
         }
 
@@ -28,7 +29,8 @@ final class RuleDescuentoPorTipoDeComprobante implements Rule
 
         return [new Violation(
             'descuento-en-traslado-o-pago',
-            sprintf('Cuando el TipoDeComprobante es %s el campo Descuento no debe existir.', $tipo)
+            sprintf('Cuando el TipoDeComprobante es %s el campo Descuento no debe existir.', $tipo),
+            'Descuento'
         )];
     }
 }

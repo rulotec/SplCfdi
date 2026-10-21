@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SplCfdi\Domain\Models;
 
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
-use SplCfdi\Domain\Support\ClaveProdServFormat;
+use SplCfdi\Domain\Support\ClaveNumericaFormat;
 use SplCfdi\Domain\Support\DecimalFormat;
 
 final class Concepto
@@ -26,7 +26,7 @@ final class Concepto
         public readonly ?string $descuento = null,
         public readonly array $impuestosRetenidos = [],
     ) {
-        ClaveProdServFormat::assertValid($claveProdServ, 'ClaveProdServ');
+        ClaveNumericaFormat::assertClaveProdServ($claveProdServ, 'ClaveProdServ');
 
         $max = DecimalConfiguration::SAT_MAX_SCALE;
 

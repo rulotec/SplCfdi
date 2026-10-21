@@ -77,4 +77,20 @@ final class CatalogDriftCheckerTest extends TestCase
 
         $this->assertCount(2, $this->checker->matrixIssues($xsd));
     }
+
+    public function testAvisaDeUnaClaveConNombreQueElSatDioDeBaja(): void
+    {
+        $claves = [CatalogName::METODO_PAGO => ['MetodoPago::PUE' => 'PUE', 'MetodoPago::PPD' => 'PPD']];
+        $xsd = [CatalogName::METODO_PAGO => ['PUE']];
+
+        $issues = $this->checker->clavesIssues($xsd, $claves);
+
+        $this->assertCount(1, $issues);
+        $this->assertStringContainsString('MetodoPago::PPD', $issues[0]);
+    }
+
+    public function testNoAvisaDeClavesDeCatalogosAusentesDelXsd(): void
+    {
+        $this->assertSame([], $this->checker->clavesIssues([], [CatalogName::METODO_PAGO => ['MetodoPago::PUE' => 'PUE']]));
+    }
 }

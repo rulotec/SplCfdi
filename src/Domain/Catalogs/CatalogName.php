@@ -7,6 +7,7 @@ namespace SplCfdi\Domain\Catalogs;
 /**
  * Catálogos pequeños que viajan embebidos. El valor es el nombre del tipo en catCFDI.xsd:
  * para agregar uno, añade su constante aquí y ejecuta `php bin/cfdi-catalogs write`.
+ * Ver docs/catalogos.md.
  */
 final class CatalogName
 {
@@ -21,13 +22,9 @@ final class CatalogName
     public const REGIMEN_FISCAL = 'c_RegimenFiscal';
     public const USO_CFDI = 'c_UsoCFDI';
 
-    /** @return string[] */
+    /** @return string[] todas las constantes de esta clase: agregar una basta para embeberla */
     public static function all(): array
     {
-        return [
-            self::FORMA_PAGO, self::METODO_PAGO, self::TIPO_DE_COMPROBANTE, self::EXPORTACION,
-            self::OBJETO_IMP, self::IMPUESTO, self::PERIODICIDAD, self::MESES,
-            self::REGIMEN_FISCAL, self::USO_CFDI,
-        ];
+        return array_values((new \ReflectionClass(self::class))->getConstants());
     }
 }

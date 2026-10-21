@@ -21,7 +21,10 @@ final class RuleFormatoRfc implements Rule
 
         foreach (['Emisor' => $comprobante->emisor->rfc, 'Receptor' => $comprobante->receptor->rfc] as $campo => $rfc) {
             if (!$this->esValido($rfc)) {
-                $violaciones[] = new Violation('rfc-formato', sprintf('Rfc del %s inválido: "%s".', $campo, $rfc));
+                $violaciones[] = new Violation('rfc-formato', sprintf(
+                    'Rfc del %s inválido: "%s" (3 letras si es persona moral o 4 si es física, fecha AAMMDD y 3 caracteres de homoclave).',
+                    $campo, $rfc
+                ), "$campo.Rfc");
             }
         }
 

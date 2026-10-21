@@ -23,7 +23,7 @@ final class InvoiceCalculator
 {
     public function __construct(
         private readonly DecimalMath $math,
-        private readonly ImpuestoTrasladadoAggregator $aggregator,
+        private readonly ImpuestoTrasladadoAggregator $trasladoAggregator,
         private readonly ImpuestoRetenidoAggregator $retencionAggregator,
         private readonly DecimalConfiguration $decimalConfig
     ) {}
@@ -75,7 +75,7 @@ final class InvoiceCalculator
     private function calcularConcepto(Concepto $concepto): ConceptoCalculado
     {
         $importe = $this->calcularImporte($concepto);
-        $descuento = $this->calcularDescuento($concepto, $importe);
+        $descuento = $this->calcularDescuento($concepto);
 
         $base = $descuento === null
         ? $importe
@@ -85,6 +85,7 @@ final class InvoiceCalculator
             $concepto,
             $importe,
             $descuento,
+            $base,
             array_map(fn (ImpuestoTrasladado $i) => $this->calcularTraslado($base, $i), $concepto->impuestosTrasladados),
             array_map(fn (ImpuestoRetenido $r) => $this->calcularRetencion($base, $r), $concepto->impuestosRetenidos),
             );
@@ -108,7 +109,7 @@ final class InvoiceCalculator
                 tasaOCuota: $t->tasaOCuota,
                 importe: $t->importe === null ? null : $this->math->round($t->importe, $decimales),
                 ),
-            $this->aggregator->aggregate($todos)
+            $this->trasladoAggregator->aggregate($todos)
             );
     }
 
@@ -192,23 +193,16 @@ final class InvoiceCalculator
         return $this->math->round($this->math->multiply($base, $tasa), $this->decimalConfig->conceptScale);
     }
 
-    /** Descuento del concepto a la escala de concepto; null si no hay. */
-    private function calcularDescuento(Concepto $concepto, string $importe): ?string
+    /**
+     * Descuento del concepto a la escala de concepto; null si no hay.
+     * Un Descuento mayor que el Importe no se rechaza aquí: lo reporta RuleDescuentoNoMayorQueImporte
+     * junto con las demás violaciones.
+     */
+    private function calcularDescuento(Concepto $concepto): ?string
     {
-        if ($concepto->descuento === null) {
-            return null;
-        }
-
-        $descuento = $this->math->round($concepto->descuento, $this->decimalConfig->conceptScale);
-
-        if ($this->math->compare($descuento, $importe) > 0) {
-            throw new \InvalidArgumentException(sprintf(
-                'El Descuento (%s) no puede ser mayor que el Importe (%s) del concepto "%s".',
-                $descuento, $importe, $concepto->descripcion
-                ));
-        }
-
-        return $descuento;
+        return $concepto->descuento === null
+            ? null
+            : $this->math->round($concepto->descuento, $this->decimalConfig->conceptScale);
     }
 
     /** Cantidad × ValorUnitario, a la escala de concepto (máx. 6 decimales). */

@@ -1,5 +1,5 @@
 <?php
-// src/Domain/Rules/RuleSet.php
+
 declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
@@ -27,6 +27,7 @@ final class RuleSet implements Rule
             new RuleFormatoRfc(),
             new RuleRegimenUsoCfdi(),
             new RuleObjetoImpCoherente(),
+            new RuleDescuentoNoMayorQueImporte(),
             new RuleBaseNoCero(),
             new RuleTotalNoNegativo(),
             new RuleCatalogos($catalogs),

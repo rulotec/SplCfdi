@@ -17,7 +17,7 @@ final class RuleTotalNoNegativo implements Rule
         if (str_starts_with($total, '-')) {
             return [new Violation('total-negativo', sprintf(
                 'El Total (%s) no puede ser negativo; revisa las retenciones.', $total
-            ))];
+            ), 'Total')];
         }
 
         return [];

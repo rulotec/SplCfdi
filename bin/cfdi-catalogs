@@ -7,6 +7,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use SplCfdi\Domain\Catalogs\CatalogName;
 use SplCfdi\Infrastructure\Catalogs\{CatalogDriftChecker, CatalogExclusions, CatalogFileWriter, CatalogXsdReader, EmbeddedCatalogs};
+use SplCfdi\Infrastructure\Resources;
 
 const SAT_XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/catalogos/catCFDI.xsd';
 
@@ -43,9 +44,8 @@ if (!in_array($command, ['check', 'write'], true)) {
     exit($command === 'help' ? 0 : 2);
 }
 
-$root = dirname(__DIR__);
 $dir = is_string($options['dir'] ?? null) ? $options['dir'] : EmbeddedCatalogs::defaultDir();
-$xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : $root . '/resources/xsd/catCFDI.xsd';
+$xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : Resources::path('xsd/catCFDI.xsd');
 
 if (isset($options['fetch'])) {
     $data = @file_get_contents(SAT_XSD_URL, false, stream_context_create(['http' => ['timeout' => 30]]));
@@ -80,6 +80,7 @@ foreach ($exclusions->all() as $catalog => $values) {
 $checker = new CatalogDriftChecker();
 $drifts = $checker->compare($embedded, $xsd);
 $issues = $checker->matrixIssues($xsd);
+$clavesIssues = $checker->clavesIssues($xsd);
 
 foreach ($drifts as $drift) {
     if ($drift->missingInXsd) {
@@ -100,6 +101,11 @@ foreach ($issues as $issue) {
     echo "[matriz] $issue\n";
 }
 
+foreach ($clavesIssues as $issue) {
+    echo "[claves] $issue\n";
+}
+$issues = [...$issues, ...$clavesIssues];
+
 if ($command === 'check') {
     if ($drifts === [] && $issues === []) {
         echo "Catálogos al día respecto a $xsdPath\n";
@@ -119,6 +125,6 @@ foreach ($xsd as $name => $values) {
 
 echo count($xsd) . " catálogos escritos en $dir\n";
 if ($issues !== []) {
-    echo "Atención: UsoCfdiMatrix se mantiene a mano; revisa los avisos [matriz].\n";
+    echo "Atención: UsoCfdiMatrix y Domain/Catalogs/Claves se mantienen a mano; revisa los avisos [matriz] y [claves].\n";
 }
 exit($issues === [] ? 0 : 1);

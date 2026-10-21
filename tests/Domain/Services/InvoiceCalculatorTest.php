@@ -180,13 +180,13 @@ final class InvoiceCalculatorTest extends TestCase
         $this->assertSame('3.46', $r->importes->total);                            // 3.00 − 0.02 + 0.48
     }
 
-    public function testRechazaUnDescuentoMayorQueElImporte(): void
+    public function testUnDescuentoMayorQueElImporteDejaLaBaseNegativaParaQueLaReporteUnaRegla(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-
-        $this->calculator->calculate(Fixtures::comprobante([
+        $r = $this->calculator->calculate(Fixtures::comprobante([
             Fixtures::concepto('10.00', '0.160000', '1', '10.01'),
         ]));
+
+        $this->assertSame('-0.010000', $r->conceptos[0]->base);
     }
 
     public function testConceptoExentoNoTieneTasaNiImporteNiTotalDeTraslados(): void

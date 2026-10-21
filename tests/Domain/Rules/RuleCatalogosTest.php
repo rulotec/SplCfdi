@@ -68,7 +68,13 @@ final class RuleCatalogosTest extends TestCase
     {
         $c = Fixtures::comprobanteNominativo([Fixtures::conceptoConObjetoImp('100.00', '09')]);
 
-        $this->assertCodigos(['catalogo-invalido'], $this->check($c));
+        $violaciones = $this->check($c);
+        $this->assertCodigos(['catalogo-invalido'], $violaciones);
+        $this->assertSame('Concepto[1].ObjetoImp', $violaciones[0]->campo);
+        $this->assertSame(
+            'Concepto 1 ("Prueba objeto"): ObjetoImp "09" no existe en el catálogo c_ObjetoImp.',
+            $violaciones[0]->message
+        );
     }
 
     public function testRechazaUnImpuestoDesconocido(): void

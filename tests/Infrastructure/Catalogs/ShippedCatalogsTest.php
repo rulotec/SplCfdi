@@ -10,6 +10,7 @@ use SplCfdi\Infrastructure\Catalogs\CatalogDriftChecker;
 use SplCfdi\Infrastructure\Catalogs\CatalogExclusions;
 use SplCfdi\Infrastructure\Catalogs\CatalogXsdReader;
 use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
+use SplCfdi\Infrastructure\Resources;
 
 /**
  * Falla cuando resources/catalogs se desfasa del catCFDI.xsd que viaja en resources/xsd.
@@ -17,16 +18,15 @@ use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
  */
 final class ShippedCatalogsTest extends TestCase
 {
-    private const XSD = __DIR__ . '/../../../resources/xsd/catCFDI.xsd';
-
     public function testLosCatalogosEmbebidosCoincidenConElXsd(): void
     {
-        if (!is_file(self::XSD)) {
+        $xsdPath = Resources::path('xsd/catCFDI.xsd');
+        if (!is_file($xsdPath)) {
             $this->markTestSkipped('No existe resources/xsd/catCFDI.xsd.');
         }
 
         $xsd = CatalogExclusions::load(EmbeddedCatalogs::defaultDir())
-            ->filter((new CatalogXsdReader())->read(self::XSD, CatalogName::all()));
+            ->filter((new CatalogXsdReader())->read($xsdPath, CatalogName::all()));
         $embedded = [];
         foreach (CatalogName::all() as $name) {
             $embedded[$name] = EmbeddedCatalogs::read(EmbeddedCatalogs::defaultDir(), $name);
@@ -39,7 +39,7 @@ final class ShippedCatalogsTest extends TestCase
                 ? "{$d->catalog}: no está en el XSD"
                 : sprintf('%s: nuevos [%s], bajas [%s]', $d->catalog, implode(',', $d->added), implode(',', $d->removed));
         }
-        array_push($problemas, ...$checker->matrixIssues($xsd));
+        array_push($problemas, ...$checker->matrixIssues($xsd), ...$checker->clavesIssues($xsd));
 
         $this->assertSame([], $problemas, "Catálogos desfasados:\n- " . implode("\n- ", $problemas));
     }

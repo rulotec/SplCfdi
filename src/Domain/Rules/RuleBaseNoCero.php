@@ -14,14 +14,13 @@ final class RuleBaseNoCero implements Rule
         $violaciones = [];
 
         foreach ($calculado->conceptos as $i => $cc) {
-            foreach ([...$cc->traslados, ...$cc->retenciones] as $impuesto) {
-                if ($this->esCero($impuesto->base)) {
-                    $violaciones[] = new Violation('base-cero', sprintf(
-                        'Concepto %d ("%s"): la Base del impuesto %s es 0 tras el descuento; debe ser mayor que cero.',
-                        $i + 1, $cc->concepto->descripcion, $impuesto->impuesto
-                    ));
-                    break; // una violación por concepto
-                }
+            $tieneImpuestos = $cc->traslados !== [] || $cc->retenciones !== [];
+
+            if ($tieneImpuestos && $this->esCero($cc->base)) {
+                $violaciones[] = new Violation('base-cero', sprintf(
+                    '%s: la Base de los impuestos es 0 tras el descuento; debe ser mayor que cero.',
+                    Ubicacion::concepto($i, $cc)
+                ), Ubicacion::campoConcepto($i, 'Descuento'));
             }
         }
 

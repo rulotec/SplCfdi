@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Support;
 
+use SplCfdi\Domain\Exceptions\InvalidFieldException;
+
 final class DecimalFormat
 {
     /** @param int|null $maxDecimals null = sin límite de decimales */
@@ -24,7 +26,7 @@ final class DecimalFormat
         return preg_match($pattern, $value) === 1;
     }
 
-    /** @throws \InvalidArgumentException */
+    /** @throws InvalidFieldException */
     public static function assertValid(
         string $value,
         string $field,
@@ -35,7 +37,7 @@ final class DecimalFormat
             return;
         }
 
-        throw new \InvalidArgumentException(sprintf(
+        throw new InvalidFieldException($field, $value, sprintf(
             '%s inválido: "%s" (%s%s).',
             $field,
             $value,

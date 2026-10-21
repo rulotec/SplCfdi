@@ -18,7 +18,7 @@ final class RuleDomicilioReceptorGenerico implements Rule
             return [new Violation('domicilio-receptor-generico', sprintf(
                 'Con RFC genérico, DomicilioFiscalReceptor (%s) debe ser igual a LugarExpedicion (%s).',
                 $receptor->domicilioFiscalReceptor, $comprobante->lugarExpedicion
-            ))];
+            ), 'Receptor.DomicilioFiscalReceptor')];
         }
 
         return [];

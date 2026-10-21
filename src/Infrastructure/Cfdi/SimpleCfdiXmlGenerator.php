@@ -24,8 +24,6 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
     private const NS_XMLNS = 'http://www.w3.org/2000/xmlns/';
     private const XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd';
 
-    private const FORMATO_FECHA = 'Y-m-d\TH:i:s';
-
     private DOMDocument $dom;
 
     public function generate(ComprobanteCalculado $calculado): string

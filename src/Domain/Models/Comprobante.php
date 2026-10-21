@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
-use SplCfdi\Domain\Support\CodigoPostalFormat;
+use SplCfdi\Domain\Support\ClaveNumericaFormat;
 
 final class Comprobante
 {
-    private const FORMATO_FECHA = 'Y-m-d\TH:i:s';
+    /** Formato de Fecha en el XML: hora local, sin zona horaria. */
+    public const FORMATO_FECHA = 'Y-m-d\TH:i:s';
 
     /**
      * @param Concepto[] $conceptos
@@ -29,7 +30,7 @@ final class Comprobante
         public readonly ?string $formaPago = null,
         public readonly ?InformacionGlobal $informacionGlobal = null
     ) {
-        CodigoPostalFormat::assertValid($lugarExpedicion, 'LugarExpedicion');
+        ClaveNumericaFormat::assertCodigoPostal($lugarExpedicion, 'LugarExpedicion');
     }
 
     /** La Fecha tal como aparece en el XML: hora local, sin zona horaria. */

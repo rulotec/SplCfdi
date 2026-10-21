@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
+use SplCfdi\Domain\Catalogs\Claves\Meses;
+use SplCfdi\Domain\Exceptions\InvalidFieldException;
+
 final class InformacionGlobal
 {
-    private const BIMESTRAL = '05';
-
     /**
      * @param string $periodicidad c_Periodicidad: 01 Diario … 05 Bimestral
      * @param string $meses        c_Meses: 01–12, o 13–18 si la periodicidad es bimestral
@@ -18,20 +19,22 @@ final class InformacionGlobal
         public readonly int $anio,
     ) {
         if (!preg_match('/^\d{2}$/D', $meses)) {
-            throw new \InvalidArgumentException(sprintf('Meses inválido: "%s" (dos dígitos, p. ej. "04").', $meses));
+            throw new InvalidFieldException('Meses', $meses, sprintf(
+                'Meses inválido: "%s" (dos dígitos, p. ej. "04").', $meses
+            ));
         }
 
-        [$min, $max] = $periodicidad === self::BIMESTRAL ? [13, 18] : [1, 12];
+        [$primero, $ultimo] = Meses::rangoPara($periodicidad);
 
-        if ((int) $meses < $min || (int) $meses > $max) {
-            throw new \InvalidArgumentException(sprintf(
-                'Meses "%s" no corresponde a la periodicidad "%s" (se esperaba %02d a %02d).',
-                $meses, $periodicidad, $min, $max
+        if ((int) $meses < (int) $primero || (int) $meses > (int) $ultimo) {
+            throw new InvalidFieldException('Meses', $meses, sprintf(
+                'Meses "%s" no corresponde a la periodicidad "%s" (se esperaba %s a %s).',
+                $meses, $periodicidad, $primero, $ultimo
             ));
         }
 
         if ($anio < 1000 || $anio > 9999) {
-            throw new \InvalidArgumentException(sprintf('Año inválido: %d (cuatro dígitos).', $anio));
+            throw new InvalidFieldException('Año', (string) $anio, sprintf('Año inválido: %d (cuatro dígitos).', $anio));
         }
     }
 }

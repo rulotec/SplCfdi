@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SplCfdi\Infrastructure\Catalogs;
 
 use SplCfdi\Domain\Catalogs\CatalogName;
+use SplCfdi\Domain\Catalogs\Claves\ClavesSat;
 use SplCfdi\Domain\Catalogs\UsoCfdiMatrix;
 
 final class CatalogDriftChecker
@@ -65,6 +66,33 @@ final class CatalogDriftChecker
         if ($regimenes !== null) {
             foreach (array_diff(UsoCfdiMatrix::regimenes(), $regimenes) as $regimen) {
                 $issues[] = "UsoCfdiMatrix cita el régimen $regimen, que no está en c_RegimenFiscal.";
+            }
+        }
+
+        return $issues;
+    }
+
+    /**
+     * Verifica que cada clave con nombre (Domain/Catalogs/Claves) siga en su catálogo del XSD.
+     *
+     * @param array<string, string[]>                    $xsd
+     * @param array<string, array<string, string>>|null $claves catálogo => [Clase::CONSTANTE => clave]; null = ClavesSat
+     *
+     * @return string[] mensajes; vacío si todas las claves existen
+     */
+    public function clavesIssues(array $xsd, ?array $claves = null): array
+    {
+        $issues = [];
+
+        foreach ($claves ?? ClavesSat::porCatalogo() as $catalogo => $porConstante) {
+            if (!isset($xsd[$catalogo])) {
+                continue;   // ya lo reporta compare() como missingInXsd
+            }
+
+            foreach ($porConstante as $constante => $clave) {
+                if (!in_array($clave, $xsd[$catalogo], true)) {
+                    $issues[] = "$constante (\"$clave\") ya no está en $catalogo: revisa las reglas que la usan.";
+                }
             }
         }
 

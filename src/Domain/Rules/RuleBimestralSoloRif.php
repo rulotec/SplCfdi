@@ -4,27 +4,26 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
 
+use SplCfdi\Domain\Catalogs\Claves\Periodicidad;
+use SplCfdi\Domain\Catalogs\Claves\RegimenFiscal;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 
-/** La periodicidad bimestral (05) de InformacionGlobal solo aplica a emisores del RIF (621). */
+/** La periodicidad bimestral de InformacionGlobal solo aplica a emisores del RIF. */
 final class RuleBimestralSoloRif implements Rule
 {
-    private const BIMESTRAL = '05';
-    private const REGIMEN_RIF = '621';
-
     public function check(ComprobanteCalculado $calculado): array
     {
         $comprobante = $calculado->comprobante;
         $info = $comprobante->informacionGlobal;
 
         if ($info !== null
-            && $info->periodicidad === self::BIMESTRAL
-            && $comprobante->emisor->regimenFiscal !== self::REGIMEN_RIF
+            && $info->periodicidad === Periodicidad::BIMESTRAL
+            && $comprobante->emisor->regimenFiscal !== RegimenFiscal::INCORPORACION_FISCAL
         ) {
             return [new Violation('bimestral-solo-rif', sprintf(
-                'La periodicidad bimestral (05) solo es válida con RegimenFiscal %s del emisor (recibido: "%s").',
-                self::REGIMEN_RIF, $comprobante->emisor->regimenFiscal
-            ))];
+                'La periodicidad bimestral (%s) solo es válida con RegimenFiscal %s del emisor (recibido: "%s").',
+                Periodicidad::BIMESTRAL, RegimenFiscal::INCORPORACION_FISCAL, $comprobante->emisor->regimenFiscal
+            ), 'InformacionGlobal.Periodicidad')];
         }
 
         return [];

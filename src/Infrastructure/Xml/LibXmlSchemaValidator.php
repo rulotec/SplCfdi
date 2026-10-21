@@ -7,6 +7,7 @@ namespace SplCfdi\Infrastructure\Xml;
 use DOMDocument;
 use SplCfdi\Domain\Contracts\XmlSchemaValidator;
 use SplCfdi\Domain\Exceptions\XmlSchemaValidationException;
+use SplCfdi\Infrastructure\Resources;
 
 final class LibXmlSchemaValidator implements XmlSchemaValidator
 {
@@ -14,7 +15,7 @@ final class LibXmlSchemaValidator implements XmlSchemaValidator
 
     public function __construct(?string $xsdPath = null)
     {
-        $this->xsdPath = $xsdPath ?? __DIR__ . '/../../../resources/xsd/cfdv40.xsd';
+        $this->xsdPath = $xsdPath ?? Resources::path('xsd/cfdv40.xsd');
     }
 
     public function validate(string $xml): void

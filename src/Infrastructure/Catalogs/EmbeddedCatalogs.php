@@ -7,13 +7,14 @@ namespace SplCfdi\Infrastructure\Catalogs;
 use SplCfdi\Domain\Catalogs\ArrayCatalog;
 use SplCfdi\Domain\Catalogs\CatalogName;
 use SplCfdi\Domain\Catalogs\Catalogs;
+use SplCfdi\Infrastructure\Resources;
 
 /** Carga los catálogos embebidos: un archivo resources/catalogs/<c_Nombre>.php por catálogo. */
 final class EmbeddedCatalogs
 {
     public static function defaultDir(): string
     {
-        return __DIR__ . '/../../../resources/catalogs';
+        return Resources::path('catalogs');
     }
 
     public static function path(string $dir, string $name): string

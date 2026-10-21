@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
-use SplCfdi\Domain\Support\CodigoPostalFormat;
+use SplCfdi\Domain\Support\ClaveNumericaFormat;
 
 final class Receptor
 {
@@ -19,7 +19,7 @@ final class Receptor
         public readonly string $regimenFiscalReceptor,
         public readonly string $usoCFDI
     ) {
-        CodigoPostalFormat::assertValid($domicilioFiscalReceptor, 'DomicilioFiscalReceptor');
+        ClaveNumericaFormat::assertCodigoPostal($domicilioFiscalReceptor, 'DomicilioFiscalReceptor');
     }
 
     public function esRfcGenerico(): bool
