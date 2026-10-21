@@ -1,0 +1,124 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use SplCfdi\Domain\Catalogs\CatalogName;
+use SplCfdi\Infrastructure\Catalogs\{CatalogDriftChecker, CatalogExclusions, CatalogFileWriter, CatalogXsdReader, EmbeddedCatalogs};
+
+const SAT_XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/catalogos/catCFDI.xsd';
+
+function fail(string $message): never
+{
+    fwrite(STDERR, $message . PHP_EOL);
+    exit(2);
+}
+
+$usage = <<<TXT
+Uso: php bin/cfdi-catalogs <check|write> [--xsd=ruta] [--dir=ruta] [--fetch]
+
+  check    compara los catálogos embebidos con catCFDI.xsd (código 1 si hay diferencias)
+  write    regenera resources/catalogs/*.php desde catCFDI.xsd
+  --xsd    XSD a usar (por defecto resources/xsd/catCFDI.xsd)
+  --dir    carpeta de catálogos embebidos (por defecto resources/catalogs)
+  --fetch  descarga el XSD vigente del SAT a un archivo temporal y usa ese
+
+TXT;
+
+$args = array_slice($argv, 1);
+$command = array_shift($args) ?? 'help';
+
+$options = [];
+foreach ($args as $arg) {
+    if (preg_match('/^--([a-z]+)(?:=(.+))?$/', $arg, $m) !== 1) {
+        fail("Argumento no reconocido: $arg\n\n$usage");
+    }
+    $options[$m[1]] = $m[2] ?? true;
+}
+
+if (!in_array($command, ['check', 'write'], true)) {
+    echo $usage;
+    exit($command === 'help' ? 0 : 2);
+}
+
+$root = dirname(__DIR__);
+$dir = is_string($options['dir'] ?? null) ? $options['dir'] : EmbeddedCatalogs::defaultDir();
+$xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : $root . '/resources/xsd/catCFDI.xsd';
+
+if (isset($options['fetch'])) {
+    $data = @file_get_contents(SAT_XSD_URL, false, stream_context_create(['http' => ['timeout' => 30]]));
+    if ($data === false || $data === '') {
+        fail('No se pudo descargar catCFDI.xsd del SAT (' . SAT_XSD_URL . ').');
+    }
+
+    $xsdPath = (string) tempnam(sys_get_temp_dir(), 'catCFDI');
+    file_put_contents($xsdPath, $data);
+    register_shutdown_function(static fn () => @unlink($xsdPath));
+    echo "XSD descargado del SAT.\n";
+}
+
+try {
+    $exclusions = CatalogExclusions::load($dir);
+    $xsd = $exclusions->filter((new CatalogXsdReader())->read($xsdPath, CatalogName::all()));
+
+    $embedded = [];
+    foreach (CatalogName::all() as $name) {
+        $embedded[$name] = is_file(EmbeddedCatalogs::path($dir, $name))
+            ? EmbeddedCatalogs::read($dir, $name)
+            : [];   // archivo faltante: todo lo del XSD aparecerá como nuevo
+    }
+} catch (RuntimeException $e) {
+    fail($e->getMessage());
+}
+
+foreach ($exclusions->all() as $catalog => $values) {
+    echo "[$catalog] excluidos a mano (no se reportan): " . implode(', ', $values) . "\n";
+}
+
+$checker = new CatalogDriftChecker();
+$drifts = $checker->compare($embedded, $xsd);
+$issues = $checker->matrixIssues($xsd);
+
+foreach ($drifts as $drift) {
+    if ($drift->missingInXsd) {
+        echo "[{$drift->catalog}] no se encontró en el XSD (¿cambió el nombre del tipo?)\n";
+        continue;
+    }
+
+    echo "[{$drift->catalog}]\n";
+    foreach ($drift->added as $value) {
+        echo "  + $value  (nuevo en el SAT)\n";
+    }
+    foreach ($drift->removed as $value) {
+        echo "  - $value  (ya no está en el SAT)\n";
+    }
+}
+
+foreach ($issues as $issue) {
+    echo "[matriz] $issue\n";
+}
+
+if ($command === 'check') {
+    if ($drifts === [] && $issues === []) {
+        echo "Catálogos al día respecto a $xsdPath\n";
+        exit(0);
+    }
+    exit(1);
+}
+
+// write
+if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+    fail("No se pudo crear $dir");
+}
+
+foreach ($xsd as $name => $values) {
+    file_put_contents(EmbeddedCatalogs::path($dir, $name), CatalogFileWriter::render($name, $values));
+}
+
+echo count($xsd) . " catálogos escritos en $dir\n";
+if ($issues !== []) {
+    echo "Atención: UsoCfdiMatrix se mantiene a mano; revisa los avisos [matriz].\n";
+}
+exit($issues === [] ? 0 : 1);

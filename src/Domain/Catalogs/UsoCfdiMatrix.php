@@ -7,8 +7,9 @@ namespace SplCfdi\Domain\Catalogs;
 /**
  * Matriz c_UsoCFDI × tipo de persona × c_RegimenFiscal (CFDI 4.0).
  *
- * OJO: transcrita del catálogo del SAT; verifícala contra la versión vigente de
- * catCFDI (el SAT la actualiza) antes de ir a producción.
+ * Esta relación NO está en catCFDI.xsd (solo en catCFDI.xls): se mantiene a mano.
+ * `php bin/cfdi-catalogs check` la contrasta con las listas de usos y regímenes del XSD,
+ * pero no puede saber si cambió qué régimen admite cada uso.
  */
 final class UsoCfdiMatrix
 {
@@ -23,6 +24,28 @@ final class UsoCfdiMatrix
     public static function find(string $uso): ?array
     {
         return self::table()[$uso] ?? null;
+    }
+
+    /** @return string[] usos con fila en la matriz */
+    public static function usos(): array
+    {
+        return array_map('strval', array_keys(self::table()));
+    }
+
+    /** @return string[] regímenes citados en alguna fila, sin repetir */
+    public static function regimenes(): array
+    {
+        $todos = [];
+        foreach (self::table() as $fila) {
+            foreach ($fila['regimenes'] as $regimen) {
+                $todos[$regimen] = true;
+            }
+        }
+
+        $lista = array_map('strval', array_keys($todos));
+        sort($lista);
+
+        return $lista;
     }
 
     /** @return array<string, array{fisica: bool, moral: bool, regimenes: string[]}> */

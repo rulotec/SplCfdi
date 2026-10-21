@@ -8,6 +8,8 @@ use DOMDocument;
 use DateTimeImmutable;
 use DateTimeZone;
 use SplCfdi\CfdiFactory;
+use SplCfdi\Domain\Catalogs\Catalogs;
+use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
 use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoRetenido, ImpuestoTrasladado, Moneda, Receptor, TipoFactor};
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\InformacionGlobal;
@@ -110,21 +112,21 @@ final class Fixtures
         ?string $metodoPago = null,
         ?string $formaPago = null,
         ?Emisor $emisor = null,
-    ): Comprobante {
-        return new Comprobante(
-            version: '4.0',
-            fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
-            moneda: $moneda ?? Moneda::mxn(),
-            tipoDeComprobante: $tipoDeComprobante,
-            exportacion: '01',
-            lugarExpedicion: $lugarExpedicion,
-            emisor: $emisor ?? new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
-            receptor: $receptor,
-            conceptos: $conceptos,
-            metodoPago: $metodoPago,
-            formaPago: $formaPago,
-            informacionGlobal: $informacionGlobal,
-        );
+        ): Comprobante {
+            return new Comprobante(
+                version: '4.0', fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
+                moneda: $moneda ?? Moneda::mxn(), tipoDeComprobante: $tipoDeComprobante, exportacion: '01',
+                lugarExpedicion: $lugarExpedicion,
+                emisor: $emisor ?? new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
+                receptor: $receptor, conceptos: $conceptos,
+                metodoPago: $metodoPago, formaPago: $formaPago,
+                informacionGlobal: $informacionGlobal,
+                );
+    }
+
+    public static function catalogs(): Catalogs
+    {
+        return EmbeddedCatalogs::load();
     }
 
     public static function calculado(Comprobante $comprobante): ComprobanteCalculado

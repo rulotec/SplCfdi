@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
+use SplCfdi\Domain\Support\ClaveProdServFormat;
 use SplCfdi\Domain\Support\DecimalFormat;
 
 final class Concepto
@@ -23,14 +25,16 @@ final class Concepto
         public readonly array $impuestosTrasladados,
         public readonly ?string $descuento = null,
         public readonly array $impuestosRetenidos = [],
-        ) {
-            $max = DecimalConfiguration::SAT_MAX_SCALE;
+    ) {
+        ClaveProdServFormat::assertValid($claveProdServ, 'ClaveProdServ');
 
-            DecimalFormat::assertValid($cantidad, 'Cantidad', $max);
-            DecimalFormat::assertValid($valorUnitario, 'ValorUnitario', $max);
+        $max = DecimalConfiguration::SAT_MAX_SCALE;
 
-            if ($descuento !== null) {
-                DecimalFormat::assertValid($descuento, 'Descuento', $max);
-            }
+        DecimalFormat::assertValid($cantidad, 'Cantidad', $max);
+        DecimalFormat::assertValid($valorUnitario, 'ValorUnitario', $max);
+
+        if ($descuento !== null) {
+            DecimalFormat::assertValid($descuento, 'Descuento', $max);
+        }
     }
 }

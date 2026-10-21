@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
 
+use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Domain\Contracts\Clock;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 
@@ -12,7 +13,7 @@ final class RuleSet implements Rule
     /** @param Rule[] $rules */
     public function __construct(private readonly array $rules) {}
 
-    public static function standard(Clock $clock): self
+    public static function standard(Clock $clock, Catalogs $catalogs): self
     {
         return new self([
             new RuleFechaDentroDeVentana($clock),
@@ -28,6 +29,7 @@ final class RuleSet implements Rule
             new RuleObjetoImpCoherente(),
             new RuleBaseNoCero(),
             new RuleTotalNoNegativo(),
+            new RuleCatalogos($catalogs),
         ]);
     }
 

@@ -18,7 +18,7 @@ final class RuleSetTest extends TestCase
     {
         $c = Fixtures::calculado(Fixtures::comprobante([Fixtures::concepto('100.00')]));
 
-        $this->assertCodigos([], RuleSet::standard(Fixtures::clock())->check($c));
+        $this->assertCodigos([], RuleSet::standard(Fixtures::clock(), Fixtures::catalogs())->check($c));
     }
 
     public function testReuneTodasLasViolacionesYNoSoloLaPrimera(): void
@@ -28,7 +28,7 @@ final class RuleSetTest extends TestCase
 
         $this->assertCodigos(
             ['informacion-global-requerida', 'domicilio-receptor-generico'],
-            RuleSet::standard(Fixtures::clock())->check($c)
+            RuleSet::standard(Fixtures::clock(), Fixtures::catalogs())->check($c)
         );
     }
 }

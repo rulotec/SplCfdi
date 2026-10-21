@@ -18,8 +18,12 @@
 			"SplCfdi\\Tests\\" : "tests/"
 		}
 	},
+	"bin" : [
+		"bin/cfdi-catalogs"
+	],
 	"scripts" : {
-		"test" : "phpunit"
+		"test" : "phpunit",
+		"catalogs" : "php bin/cfdi-catalogs check"
 	},
 	"require-dev" : {
 		"phpunit/phpunit" : "^11.5"

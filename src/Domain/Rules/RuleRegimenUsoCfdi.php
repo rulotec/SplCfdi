@@ -7,7 +7,11 @@ namespace SplCfdi\Domain\Rules;
 use SplCfdi\Domain\Catalogs\UsoCfdiMatrix;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 
-/** UsoCFDI debe ser válido para el tipo de persona (por longitud del RFC) y para el RegimenFiscalReceptor. */
+/**
+ * UsoCFDI debe ser válido para el tipo de persona (por longitud del RFC) y para el RegimenFiscalReceptor.
+ * Un uso fuera de la matriz no se reporta aquí: que exista en el catálogo lo verifica RuleCatalogos,
+ * y `bin/cfdi-catalogs check` avisa de usos del catálogo que falten en la matriz.
+ */
 final class RuleRegimenUsoCfdi implements Rule
 {
     public function check(ComprobanteCalculado $calculado): array
@@ -16,9 +20,7 @@ final class RuleRegimenUsoCfdi implements Rule
         $uso = UsoCfdiMatrix::find($receptor->usoCFDI);
 
         if ($uso === null) {
-            return [new Violation('uso-cfdi-desconocido', sprintf(
-                'UsoCFDI "%s" no está en la matriz de usos conocida.', $receptor->usoCFDI
-            ))];
+            return [];
         }
 
         $violaciones = [];

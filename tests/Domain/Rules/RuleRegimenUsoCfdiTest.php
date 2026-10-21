@@ -40,7 +40,7 @@ final class RuleRegimenUsoCfdiTest extends TestCase
             'deducción personal en moral'     => [self::MORAL, '601', 'D01', ['uso-cfdi-persona', 'uso-cfdi-regimen']],
             'donativo en moral 603'           => [self::MORAL, '603', 'D04', []],
             'nómina en moral'                 => [self::MORAL, '601', 'CN01', ['uso-cfdi-persona', 'uso-cfdi-regimen']],
-            'uso desconocido'                 => [self::FISICA, '612', 'ZZ9', ['uso-cfdi-desconocido']],
+            'uso fuera de la matriz'          => [self::FISICA, '612', 'ZZ9', []],   // lo reporta RuleCatalogos
         ];
     }
 }
