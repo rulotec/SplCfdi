@@ -120,7 +120,7 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
 - `Comprobante::$version` es obligatorio aunque solo se soporta "4.0".
 - `spl-cfdi-catalogs-fix.zip` en la raíz es un parche ya aplicado (su contenido coincide con el
   código actual): se puede eliminar.
-- Sin README ni análisis estático (PHPStan/Psalm).
+- Sin README. Verificación local: `composer check` (PHPStan nivel máximo, pruebas y catálogos).
 
 ### Fuera de alcance por ahora
 - Cadena original (XSLT), sellado con CSD, timbrado con PAC, cancelación.

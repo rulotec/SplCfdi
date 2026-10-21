@@ -25,6 +25,6 @@ final class CatalogName
     /** @return string[] todas las constantes de esta clase: agregar una basta para embeberla */
     public static function all(): array
     {
-        return array_values((new \ReflectionClass(self::class))->getConstants());
+        return array_values(array_filter((new \ReflectionClass(self::class))->getConstants(), 'is_string'));
     }
 }

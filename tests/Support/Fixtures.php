@@ -16,7 +16,10 @@ use SplCfdi\Domain\Models\InformacionGlobal;
 
 final class Fixtures
 {
-    /** @param ImpuestoTrasladado[] $traslados @param ImpuestoRetenido[] $retenciones */
+    /**
+     * @param ImpuestoTrasladado[] $traslados
+     * @param ImpuestoRetenido[]   $retenciones
+     */
     private static function build(
         string $descripcion,
         string $valorUnitario,
@@ -58,7 +61,11 @@ final class Fixtures
         return self::build('Prueba sin impuestos', $valorUnitario, '01', []);
     }
 
-    /** Para probar combinaciones de ObjetoImp / traslados que los demás helpers no producen. */
+    /**
+     * Para probar combinaciones de ObjetoImp / traslados que los demás helpers no producen.
+     *
+     * @param ImpuestoTrasladado[] $traslados
+     */
     public static function conceptoConObjetoImp(string $valorUnitario, string $objetoImp, array $traslados = []): Concepto
     {
         return self::build('Prueba objeto', $valorUnitario, $objetoImp, $traslados);
@@ -85,7 +92,11 @@ final class Fixtures
         return new FixedClock(new DateTimeImmutable('2026-10-01T13:00:00', new DateTimeZone('America/Mexico_City')));
     }
 
-    /** Público en general con InformacionGlobal, PUE y forma de pago: un CFDI global válido. */
+    /**
+     * Público en general con InformacionGlobal, PUE y forma de pago: un CFDI global válido.
+     *
+     * @param Concepto[] $conceptos
+     */
     public static function comprobante(array $conceptos, ?Moneda $moneda = null, ?DateTimeImmutable $fecha = null): Comprobante
     {
         return self::comprobanteCon(
@@ -94,7 +105,11 @@ final class Fixtures
         );
     }
 
-    /** Receptor identificado, sin InformacionGlobal. */
+    /**
+     * Receptor identificado, sin InformacionGlobal.
+     *
+     * @param Concepto[] $conceptos
+     */
     public static function comprobanteNominativo(array $conceptos): Comprobante
     {
         return self::comprobanteCon($conceptos, self::receptorNominativo(), null);
@@ -140,11 +155,11 @@ final class Fixtures
         $dom = new DOMDocument();
         $dom->loadXML($xml);
 
-        $root = $dom->documentElement;
+        $root = $dom->documentElement ?? throw new \LogicException('XML sin elemento raíz.');
         $root->setAttribute('Sello', 'AAAA');
         $root->setAttribute('NoCertificado', '30001000000500003456');
         $root->setAttribute('Certificado', 'AAAA');
 
-        return $dom->saveXML();
+        return (string) $dom->saveXML();
     }
 }

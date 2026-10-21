@@ -32,7 +32,7 @@ final class EmbeddedCatalogs
         ));
     }
 
-    /** @return string[] */
+    /** @return list<string> */
     public static function read(string $dir, string $name): array
     {
         $file = self::path($dir, $name);
@@ -43,12 +43,6 @@ final class EmbeddedCatalogs
             );
         }
 
-        $values = require $file;
-
-        if (!is_array($values)) {
-            throw new \RuntimeException("El archivo $file debe devolver un arreglo.");
-        }
-
-        return array_map('strval', array_values($values));
+        return PhpDataFile::strings(PhpDataFile::load($file), $file);
     }
 }

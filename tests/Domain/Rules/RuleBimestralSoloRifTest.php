@@ -7,6 +7,7 @@ namespace SplCfdi\Tests\Domain\Rules;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\Domain\Models\{Emisor, InformacionGlobal};
 use SplCfdi\Domain\Rules\RuleBimestralSoloRif;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -37,6 +38,7 @@ final class RuleBimestralSoloRifTest extends TestCase
         $this->assertCodigos([], (new RuleBimestralSoloRif())->check(Fixtures::calculado($c)));
     }
 
+    /** @return Violation[] */
     private function check(string $periodicidad, string $regimenEmisor): array
     {
         $meses = $periodicidad === '05' ? '13' : '10';

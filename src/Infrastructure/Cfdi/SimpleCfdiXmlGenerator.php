@@ -33,7 +33,7 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
 
         $this->dom->appendChild($this->crearComprobante($calculado));
 
-        return $this->dom->saveXML();
+        return $this->dom->saveXML() ?: throw new \RuntimeException('No se pudo serializar el XML del CFDI.');
     }
 
     private function crearComprobante(ComprobanteCalculado $calculado): DOMElement
@@ -188,8 +188,10 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
     /**
      * Contenedor con un hijo por elemento; null si no hay elementos.
      *
-     * @param array<int, mixed> $items
-     * @param callable(mixed): array<string, ?string> $atributos
+     * @template T
+     *
+     * @param array<T> $items
+     * @param callable(T): array<string, ?string> $atributos
      */
     private function bloque(string $contenedor, string $hijo, array $items, callable $atributos): ?DOMElement
     {

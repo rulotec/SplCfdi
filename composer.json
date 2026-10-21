@@ -23,9 +23,17 @@
 	],
 	"scripts" : {
 		"test" : "phpunit",
-		"catalogs" : "php bin/cfdi-catalogs check"
+		"catalogs" : "php bin/cfdi-catalogs check",
+		"analyse" : "phpstan analyse --no-progress",
+		"check" : [
+			"@analyse",
+			"@test",
+			"@catalogs"
+		]
 	},
 	"require-dev" : {
-		"phpunit/phpunit" : "^11.5"
+		"phpunit/phpunit" : "^11.5",
+		"phpstan/phpstan": "^2.1",
+		"phpstan/phpstan-phpunit": "^2.0"
 	}
 }

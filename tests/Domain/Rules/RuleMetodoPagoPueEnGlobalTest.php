@@ -14,6 +14,7 @@ final class RuleMetodoPagoPueEnGlobalTest extends TestCase
 {
     use AssertsRules;
 
+    /** @param string[] $esperados */
     #[DataProvider('metodos')]
     public function testExigePueEnUnCfdiGlobal(?string $metodo, array $esperados): void
     {

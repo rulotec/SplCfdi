@@ -7,6 +7,7 @@ namespace SplCfdi\Tests\Domain\Rules;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\Domain\Models\{Comprobante, Emisor, ImpuestoTrasladado, InformacionGlobal, Receptor, TipoFactor};
 use SplCfdi\Domain\Rules\RuleCatalogos;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -95,6 +96,7 @@ final class RuleCatalogosTest extends TestCase
         $this->assertCodigos(['catalogo-invalido'], $this->check($c));
     }
 
+    /** @return Violation[] */
     private function check(Comprobante $comprobante): array
     {
         return (new RuleCatalogos(Fixtures::catalogs()))->check(Fixtures::calculado($comprobante));

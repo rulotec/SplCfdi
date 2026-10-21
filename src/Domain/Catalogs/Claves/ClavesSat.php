@@ -29,11 +29,14 @@ final class ClavesSat
 
         foreach (self::CLASES as $clase) {
             $constantes = (new \ReflectionClass($clase))->getConstants();
-            $catalogo = $constantes['CATALOGO'];
+            $catalogo = $constantes['CATALOGO'] ?? null;
+            if (!is_string($catalogo)) {
+                throw new \LogicException("$clase debe declarar la constante CATALOGO.");
+            }
             unset($constantes['CATALOGO']);
 
-            $corto = substr($clase, strrpos($clase, '\\') + 1);
-            foreach ($constantes as $nombre => $clave) {
+            $corto = substr($clase, (int) strrpos($clase, '\\') + 1);
+            foreach (array_filter($constantes, 'is_string') as $nombre => $clave) {
                 $resultado[$catalogo]["$corto::$nombre"] = $clave;
             }
         }

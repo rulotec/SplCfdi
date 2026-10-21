@@ -1,0 +1,21 @@
+includes:
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - bin/cfdi-catalogs
+    ignoreErrors:
+        # bcmath pide numeric-string; FormatRuleSet garantiza la forma antes de calcular
+        # y BcMathDecimalMath::round la vuelve a validar.
+        -
+            identifier: argument.type
+            message: '#expects numeric-string, string given#'
+            path: src/Infrastructure/Math/BcMathDecimalMath.php
+        # Los data providers de PHPUnit devuelven arreglos de casos heterogéneos.
+        -
+            identifier: missingType.iterableValue
+            path: tests/*

@@ -18,6 +18,7 @@ final class RuleRegimenUsoCfdiTest extends TestCase
     private const MORAL = 'EKU9003173C9';     // 12 caracteres
     private const FISICA = 'GOMC800101AB1';   // 13 caracteres
 
+    /** @param string[] $esperados */
     #[DataProvider('casos')]
     public function testMatriz(string $rfc, string $regimen, string $uso, array $esperados): void
     {

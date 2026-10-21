@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Infrastructure\Cfdi;
 
 use DOMDocument;
+use DOMElement;
 use DOMXPath;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
@@ -59,15 +60,15 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
             Fixtures::concepto('100.00'), Fixtures::concepto('200.00'), Fixtures::concepto('300.00'),
         ]);
 
-        $this->assertSame(3, (int) $xp->evaluate('count(//cfdi:Concepto)'));
+        $this->assertSame(3, $this->contar($xp, '//cfdi:Concepto'));
         $this->assertSame(
             3,
-            (int) $xp->evaluate('count(//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado)')
+            $this->contar($xp, '//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
         );
         // El resumen agrupa los tres en una sola línea.
         $this->assertSame(
             1,
-            (int) $xp->evaluate('count(/cfdi:Comprobante/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado)')
+            $this->contar($xp, '/cfdi:Comprobante/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
         );
     }
 
@@ -82,12 +83,11 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     public function testElXsdRechazaUnImporteConMasDeSeisDecimales(): void
     {
         $xp = $this->xpathDe(Fixtures::withSealPlaceholders($this->generar([Fixtures::concepto('1000.00')])));
-        $xp->query('//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
-            ->item(0)
+        $this->elemento($xp, '//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
             ->setAttribute('Importe', '160.000000000000');
 
         $this->expectException(XmlSchemaValidationException::class);
-        (new LibXmlSchemaValidator())->validate($xp->document->saveXML());
+        (new LibXmlSchemaValidator())->validate((string) $xp->document->saveXML());
     }
 
     public function testElXmlConDescuentoCumpleConElEsquema(): void
@@ -126,8 +126,8 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $this->assertSame('1103.33', $xp->evaluate('string(/cfdi:Comprobante/@Total)'));   // 1050 + 160 − 106.67
 
         // Exento: sin TasaOCuota ni Importe (uno a nivel concepto y otro en el resumen)
-        $this->assertSame(2, (int) $xp->evaluate("count(//cfdi:Traslado[@TipoFactor='Exento'])"));
-        $this->assertSame(0, (int) $xp->evaluate("count(//cfdi:Traslado[@TipoFactor='Exento'][@TasaOCuota or @Importe])"));
+        $this->assertSame(2, $this->contar($xp, "//cfdi:Traslado[@TipoFactor='Exento']"));
+        $this->assertSame(0, $this->contar($xp, "//cfdi:Traslado[@TipoFactor='Exento'][@TasaOCuota or @Importe]"));
 
         $this->assertCumpleConElEsquema($xml);
     }
@@ -136,7 +136,7 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     {
         $xml = $this->generar([Fixtures::conceptoSinImpuestos('100.00')]);
 
-        $this->assertSame(0, (int) $this->xpathDe($xml)->evaluate('count(/cfdi:Comprobante/cfdi:Impuestos)'));
+        $this->assertSame(0, $this->contar($this->xpathDe($xml), '/cfdi:Comprobante/cfdi:Impuestos'));
 
         $this->assertCumpleConElEsquema($xml);
     }
@@ -146,9 +146,8 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
         $xml = $this->generar([Fixtures::concepto('100.00')]);
         $xp = $this->xpathDe($xml);
 
-        $nodo = $xp->query('/cfdi:Comprobante/cfdi:InformacionGlobal')->item(0);
+        $nodo = $this->elemento($xp, '/cfdi:Comprobante/cfdi:InformacionGlobal');
 
-        $this->assertNotNull($nodo);
         $this->assertSame('01', $nodo->getAttribute('Periodicidad'));
         $this->assertSame('10', $nodo->getAttribute('Meses'));
         $this->assertSame('2026', $nodo->getAttribute('Año'));
@@ -162,7 +161,7 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
             $this->calculator->calculate(Fixtures::comprobanteNominativo([Fixtures::concepto('100.00')]))
             );
 
-        $this->assertSame(0, (int) $this->xpathDe($xml)->evaluate('count(/cfdi:Comprobante/cfdi:InformacionGlobal)'));
+        $this->assertSame(0, $this->contar($this->xpathDe($xml), '/cfdi:Comprobante/cfdi:InformacionGlobal'));
 
         $this->assertCumpleConElEsquema($xml);
     }
@@ -198,10 +197,27 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     private function nombresDeHijos(DOMXPath $xp, string $consulta): array
     {
         $nombres = [];
-        foreach ($xp->query($consulta) as $nodo) {
-            $nombres[] = $nodo->localName;
+        foreach ($xp->query($consulta) ?: [] as $nodo) {
+            $nombres[] = (string) $nodo->localName;
         }
 
         return $nombres;
+    }
+
+    private function contar(DOMXPath $xp, string $consulta): int
+    {
+        $total = $xp->evaluate("count($consulta)");
+        $this->assertIsFloat($total);
+
+        return (int) $total;
+    }
+
+    private function elemento(DOMXPath $xp, string $consulta): DOMElement
+    {
+        $nodo = $xp->query($consulta) ?: null;
+        $elemento = $nodo?->item(0);
+        $this->assertInstanceOf(DOMElement::class, $elemento, "No se encontró $consulta");
+
+        return $elemento;
     }
 }

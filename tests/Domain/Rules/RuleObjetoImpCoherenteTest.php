@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Domain\Rules;
 
 use PHPUnit\Framework\TestCase;
-use SplCfdi\Domain\Models\{ImpuestoTrasladado, TipoFactor};
+use SplCfdi\Domain\Models\{Comprobante, ImpuestoTrasladado, TipoFactor};
 use SplCfdi\Domain\Rules\RuleObjetoImpCoherente;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -50,7 +51,8 @@ final class RuleObjetoImpCoherenteTest extends TestCase
         $this->assertCodigos(['objeto-imp-exento'], $this->check($c));
     }
 
-    private function check($comprobante): array
+    /** @return Violation[] */
+    private function check(Comprobante $comprobante): array
     {
         return (new RuleObjetoImpCoherente())->check(Fixtures::calculado($comprobante));
     }

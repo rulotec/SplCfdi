@@ -18,13 +18,15 @@ final class CatalogExclusions
             return new self([]);
         }
 
-        $data = require $file;
-
-        if (!is_array($data)) {
-            throw new \RuntimeException("El archivo $file debe devolver un arreglo.");
+        $excluded = [];
+        foreach (PhpDataFile::load($file) as $catalog => $values) {
+            if (!is_string($catalog) || !is_array($values)) {
+                throw new \RuntimeException("El archivo $file debe tener la forma ['c_Catalogo' => ['clave', ...]].");
+            }
+            $excluded[$catalog] = PhpDataFile::strings($values, $file);
         }
 
-        return new self($data);
+        return new self($excluded);
     }
 
     /** @return array<string, string[]> */

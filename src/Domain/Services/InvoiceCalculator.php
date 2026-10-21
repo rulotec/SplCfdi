@@ -136,7 +136,10 @@ final class InvoiceCalculator
             return new ImpuestoTrasladadoCalculado($base, $impuesto->impuesto, TipoFactor::Exento, null, null);
         }
 
-        $tasa = $this->normalizarTasa($impuesto->tasaOCuota);
+        // FormatRuleSet garantiza la tasa en un traslado Tasa (violación tasa-requerida).
+        $tasa = $this->normalizarTasa(
+            $impuesto->tasaOCuota ?? throw new \LogicException('Traslado sin TasaOCuota: valida con FormatRuleSet antes de calcular.')
+        );
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,

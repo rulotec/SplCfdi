@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Rules\RuleFechaDentroDeVentana;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\FixedClock;
 use SplCfdi\Tests\Support\Fixtures;
@@ -47,6 +48,7 @@ final class RuleFechaDentroDeVentanaTest extends TestCase
         $this->assertCodigos(['fecha-futura'], $this->violaciones('2026-10-01T13:00:00', $comprobante));
     }
 
+    /** @return Violation[] */
     private function violaciones(string $ahora, Comprobante $comprobante): array
     {
         $reloj = new FixedClock(new DateTimeImmutable($ahora, new DateTimeZone('America/Mexico_City')));
