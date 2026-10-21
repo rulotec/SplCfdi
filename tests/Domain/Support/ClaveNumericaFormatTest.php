@@ -6,7 +6,6 @@ namespace SplCfdi\Tests\Domain\Support;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use SplCfdi\Domain\Exceptions\InvalidFieldException;
 use SplCfdi\Domain\Support\ClaveNumericaFormat;
 
 final class ClaveNumericaFormatTest extends TestCase
@@ -14,9 +13,7 @@ final class ClaveNumericaFormatTest extends TestCase
     #[DataProvider('codigosPostalesValidos')]
     public function testAceptaCodigosPostalesDeCincoDigitos(string $cp): void
     {
-        ClaveNumericaFormat::assertCodigoPostal($cp, 'CP');
-
-        $this->addToAssertionCount(1);
+        $this->assertTrue(ClaveNumericaFormat::esCodigoPostal($cp));
     }
 
     public static function codigosPostalesValidos(): array
@@ -27,8 +24,7 @@ final class ClaveNumericaFormatTest extends TestCase
     #[DataProvider('codigosPostalesInvalidos')]
     public function testRechazaCualquierOtroCodigoPostal(string $cp): void
     {
-        $this->expectException(InvalidFieldException::class);
-        ClaveNumericaFormat::assertCodigoPostal($cp, 'CP');
+        $this->assertFalse(ClaveNumericaFormat::esCodigoPostal($cp));
     }
 
     public static function codigosPostalesInvalidos(): array
@@ -47,9 +43,7 @@ final class ClaveNumericaFormatTest extends TestCase
     #[DataProvider('clavesProdServValidas')]
     public function testAceptaClaveProdServDeOchoDigitos(string $clave): void
     {
-        ClaveNumericaFormat::assertClaveProdServ($clave, 'ClaveProdServ');
-
-        $this->addToAssertionCount(1);
+        $this->assertTrue(ClaveNumericaFormat::esClaveProdServ($clave));
     }
 
     public static function clavesProdServValidas(): array
@@ -60,8 +54,7 @@ final class ClaveNumericaFormatTest extends TestCase
     #[DataProvider('clavesProdServInvalidas')]
     public function testRechazaCualquierOtraClaveProdServ(string $clave): void
     {
-        $this->expectException(InvalidFieldException::class);
-        ClaveNumericaFormat::assertClaveProdServ($clave, 'ClaveProdServ');
+        $this->assertFalse(ClaveNumericaFormat::esClaveProdServ($clave));
     }
 
     public static function clavesProdServInvalidas(): array
@@ -75,17 +68,5 @@ final class ClaveNumericaFormatTest extends TestCase
             'decimal'                      => ['8111210.'],
             'vacía'                        => [''],
         ];
-    }
-
-    public function testLaExcepcionIndicaCampoYValor(): void
-    {
-        try {
-            ClaveNumericaFormat::assertCodigoPostal('1000', 'LugarExpedicion');
-            $this->fail('Se esperaba InvalidFieldException.');
-        } catch (InvalidFieldException $e) {
-            $this->assertSame('LugarExpedicion', $e->campo);
-            $this->assertSame('1000', $e->valor);
-            $this->assertStringContainsString('LugarExpedicion', $e->getMessage());
-        }
     }
 }

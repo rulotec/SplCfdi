@@ -18,7 +18,7 @@ final class RuleDescuentoNoMayorQueImporte implements Rule
             if (str_starts_with($cc->base, '-')) {
                 $violaciones[] = new Violation('descuento-mayor-que-importe', sprintf(
                     '%s: el Descuento (%s) no puede ser mayor que el Importe (%s).',
-                    Ubicacion::concepto($i, $cc), $cc->descuento, $cc->importe
+                    Ubicacion::concepto($i, $cc->concepto), $cc->descuento, $cc->importe
                 ), Ubicacion::campoConcepto($i, 'Descuento'));
             }
         }

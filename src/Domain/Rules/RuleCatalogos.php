@@ -35,7 +35,7 @@ final class RuleCatalogos implements Rule
         ];
 
         foreach ($calculado->conceptos as $i => $cc) {
-            $etiqueta = Ubicacion::concepto($i, $cc);
+            $etiqueta = Ubicacion::concepto($i, $cc->concepto);
             $revisar[] = [CatalogName::OBJETO_IMP, "$etiqueta: ObjetoImp", Ubicacion::campoConcepto($i, 'ObjetoImp'), $cc->concepto->objetoImp];
 
             foreach ($cc->traslados as $t) {

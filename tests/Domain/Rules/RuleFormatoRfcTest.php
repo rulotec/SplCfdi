@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\Domain\Models\{Emisor, Receptor};
 use SplCfdi\Domain\Rules\RuleFormatoRfc;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -60,6 +61,7 @@ final class RuleFormatoRfcTest extends TestCase
         $this->assertCodigos(['rfc-formato', 'rfc-formato'], $this->check('BAD', 'BAD'));
     }
 
+    /** @return Violation[] */
     private function check(string $rfcReceptor, string $rfcEmisor): array
     {
         $c = Fixtures::comprobanteCon(
@@ -69,6 +71,6 @@ final class RuleFormatoRfcTest extends TestCase
             emisor: new Emisor($rfcEmisor, 'EMISOR', '601'),
         );
 
-        return (new RuleFormatoRfc())->check(Fixtures::calculado($c));
+        return (new RuleFormatoRfc())->check($c);
     }
 }

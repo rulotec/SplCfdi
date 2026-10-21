@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
-use SplCfdi\Domain\Support\ClaveNumericaFormat;
-
 final class Comprobante
 {
     /** Formato de Fecha en el XML: hora local, sin zona horaria. */
@@ -29,9 +27,7 @@ final class Comprobante
         public readonly ?string $metodoPago = null,
         public readonly ?string $formaPago = null,
         public readonly ?InformacionGlobal $informacionGlobal = null
-    ) {
-        ClaveNumericaFormat::assertCodigoPostal($lugarExpedicion, 'LugarExpedicion');
-    }
+    ) {}
 
     /** La Fecha tal como aparece en el XML: hora local, sin zona horaria. */
     public function fechaCfdi(): string

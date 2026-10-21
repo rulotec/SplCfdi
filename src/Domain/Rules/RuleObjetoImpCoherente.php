@@ -24,7 +24,7 @@ final class RuleObjetoImpCoherente implements Rule
 
         foreach ($calculado->conceptos as $i => $cc) {
             $objeto = $cc->concepto->objetoImp;
-            $etiqueta = Ubicacion::concepto($i, $cc);
+            $etiqueta = Ubicacion::concepto($i, $cc->concepto);
             $campo = Ubicacion::campoConcepto($i, 'ObjetoImp');
             $tieneImpuestos = $cc->traslados !== [] || $cc->retenciones !== [];
             $tieneExento = array_filter(

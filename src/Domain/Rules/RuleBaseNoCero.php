@@ -19,7 +19,7 @@ final class RuleBaseNoCero implements Rule
             if ($tieneImpuestos && $this->esCero($cc->base)) {
                 $violaciones[] = new Violation('base-cero', sprintf(
                     '%s: la Base de los impuestos es 0 tras el descuento; debe ser mayor que cero.',
-                    Ubicacion::concepto($i, $cc)
+                    Ubicacion::concepto($i, $cc->concepto)
                 ), Ubicacion::campoConcepto($i, 'Descuento'));
             }
         }

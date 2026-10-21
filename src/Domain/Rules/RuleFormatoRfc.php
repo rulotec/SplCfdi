@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
 
-use SplCfdi\Domain\Models\ComprobanteCalculado;
+use SplCfdi\Domain\Models\Comprobante;
 
 /**
  * Forma del RFC del Emisor y del Receptor: 3 letras (moral) o 4 (física), fecha AAMMDD real y 3 de homoclave.
  * No verifica el dígito verificador ni que el RFC esté en la LCO del SAT.
  */
-final class RuleFormatoRfc implements Rule
+final class RuleFormatoRfc implements FormatRule
 {
     private const PATRON = '/^[A-ZÑ&]{3,4}([0-9]{2})([0-9]{2})([0-9]{2})[A-Z0-9]{3}$/Du';
 
-    public function check(ComprobanteCalculado $calculado): array
+    public function check(Comprobante $comprobante): array
     {
-        $comprobante = $calculado->comprobante;
         $violaciones = [];
 
         foreach (['Emisor' => $comprobante->emisor->rfc, 'Receptor' => $comprobante->receptor->rfc] as $campo => $rfc) {

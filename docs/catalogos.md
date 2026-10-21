@@ -41,11 +41,11 @@ Cada `resources/catalogs/c_<Nombre>.php` devuelve un arreglo de claves **como ca
 
 | Catálogo | Por qué | Cómo se valida hoy |
 |---|---|---|
-| `c_ClaveProdServ` (~50 000 claves) | Tamaño | Forma (8 dígitos) en `Concepto` + existencia vía XSD |
+| `c_ClaveProdServ` (~50 000 claves) | Tamaño | Forma (8 dígitos) en `RuleFormatoConceptos` + existencia vía XSD |
 | `c_ClaveUnidad` | Tamaño | Solo existencia vía XSD |
-| `c_CodigoPostal` (~95 000 claves) | Tamaño | Forma (5 dígitos) en `Comprobante` y `Receptor` + existencia vía XSD |
-| `c_Moneda` | Los decimales por moneda no están en el XSD | Forma (3 letras) en `Moneda` + existencia vía XSD; los decimales los indica el host |
-| `c_TasaOCuota` | Rangos y combinaciones impuesto/factor, no una lista simple | Forma (≤ 6 decimales) en los modelos de impuesto |
+| `c_CodigoPostal` (~95 000 claves) | Tamaño | Forma (5 dígitos) en `RuleFormatoComprobante` + existencia vía XSD |
+| `c_Moneda` | Los decimales por moneda no están en el XSD | Forma (3 letras) en `RuleFormatoComprobante` + existencia vía XSD; los decimales los indica el host |
+| `c_TasaOCuota` | Rangos y combinaciones impuesto/factor, no una lista simple | Forma (≤ 6 decimales) en `RuleFormatoConceptos` |
 
 "Existencia vía XSD" significa `LibXmlSchemaValidator` contra `cfdv40.xsd` (que importa
 `catCFDI.xsd`). Hoy **`CfdiService` no lo invoca**: el host debe llamarlo, y sus mensajes son los

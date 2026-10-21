@@ -8,7 +8,7 @@ use SplCfdi\Application\CfdiService;
 use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Contracts\Clock;
-use SplCfdi\Domain\Rules\RuleSet;
+use SplCfdi\Domain\Rules\{FormatRuleSet, RuleSet};
 use SplCfdi\Domain\Services\{ImpuestoRetenidoAggregator, ImpuestoTrasladadoAggregator, InvoiceCalculator};
 use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
 use SplCfdi\Infrastructure\Cfdi\SimpleCfdiXmlGenerator;
@@ -23,13 +23,17 @@ final class CfdiFactory
         ?Clock $clock = null,
         ?Catalogs $catalogs = null,
     ): CfdiService {
+        $config ??= DecimalConfiguration::sat();
+
         return new CfdiService(
             self::createCalculator($config),
             new SimpleCfdiXmlGenerator(),
+            FormatRuleSet::standard($config),
             RuleSet::standard($clock ?? new SystemClock(), $catalogs ?? EmbeddedCatalogs::load()),
         );
     }
 
+    /** El calculador supone datos con formato válido: valida antes con FormatRuleSet (CfdiService ya lo hace). */
     public static function createCalculator(?DecimalConfiguration $config = null): InvoiceCalculator
     {
         $config ??= DecimalConfiguration::sat();
