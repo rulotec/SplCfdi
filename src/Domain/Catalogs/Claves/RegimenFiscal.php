@@ -15,6 +15,6 @@ final class RegimenFiscal
     public const CATALOGO = CatalogName::REGIMEN_FISCAL;
 
     public const GENERAL_PERSONAS_MORALES = '601';
-    public const SIN_OBLIGACIONES_FISCALES = '616';
+    public const SIN_OBLIGACIONES_FISCALES = '616';   // también el de los RFC genéricos XAXX/XEXX
     public const INCORPORACION_FISCAL = '621';
 }

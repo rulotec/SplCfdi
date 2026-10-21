@@ -7,6 +7,7 @@ namespace SplCfdi\Infrastructure\Cfdi;
 use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
+use SplCfdi\Domain\Models\CfdiRelacionados;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\ConceptoCalculado;
 use SplCfdi\Domain\Models\Emisor;
@@ -54,14 +55,17 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
             'FormaPago' => $c->formaPago,
             'SubTotal' => $importes->subTotal,
             'Descuento' => $importes->descuento,
-            'Moneda' => $c->moneda->codigo,
+            'Moneda' => $c->moneda,
+            'TipoCambio' => $c->tipoCambio,
             'Total' => $importes->total,
             'TipoDeComprobante' => $c->tipoDeComprobante,
             'Exportacion' => $c->exportacion,
             'MetodoPago' => $c->metodoPago,
             'LugarExpedicion' => $c->lugarExpedicion,
+            'Confirmacion' => $c->confirmacion,
         ], [
             $this->crearInformacionGlobal($c->informacionGlobal),
+            ...array_map(fn (CfdiRelacionados $r) => $this->crearCfdiRelacionados($r), array_values($c->cfdiRelacionados)),
             $this->crearEmisor($c->emisor),
             $this->crearReceptor($c->receptor),
             $this->crearConceptos($calculado->conceptos),
@@ -82,6 +86,14 @@ final class SimpleCfdiXmlGenerator implements CfdiXmlGenerator
             'Meses' => $informacion->meses,
             'Año' => (string) $informacion->anio,
         ]);
+    }
+
+    private function crearCfdiRelacionados(CfdiRelacionados $relacionados): DOMElement
+    {
+        return $this->nodo('CfdiRelacionados', ['TipoRelacion' => $relacionados->tipoRelacion], array_map(
+            fn (string $uuid) => $this->nodo('CfdiRelacionado', ['UUID' => $uuid]),
+            array_values($relacionados->uuids)
+        ));
     }
 
     private function crearEmisor(Emisor $emisor): DOMElement

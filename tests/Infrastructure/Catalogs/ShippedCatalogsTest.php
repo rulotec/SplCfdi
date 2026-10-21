@@ -10,6 +10,7 @@ use SplCfdi\Infrastructure\Catalogs\CatalogDriftChecker;
 use SplCfdi\Infrastructure\Catalogs\CatalogExclusions;
 use SplCfdi\Infrastructure\Catalogs\CatalogXsdReader;
 use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
+use SplCfdi\Infrastructure\Catalogs\XlsCatalogs;
 use SplCfdi\Infrastructure\Resources;
 
 /**
@@ -39,7 +40,16 @@ final class ShippedCatalogsTest extends TestCase
                 ? "{$d->catalog}: no está en el XSD"
                 : sprintf('%s: nuevos [%s], bajas [%s]', $d->catalog, implode(',', $d->added), implode(',', $d->removed));
         }
-        array_push($problemas, ...$checker->matrixIssues($xsd), ...$checker->clavesIssues($xsd));
+        $dir = EmbeddedCatalogs::defaultDir();
+        array_push(
+            $problemas,
+            ...$checker->matrixIssues($xsd),
+            ...$checker->clavesIssues($xsd),
+            ...$checker->xlsIssues($xsd, [
+                CatalogName::MONEDA => XlsCatalogs::monedas($dir)->codigos(),
+                CatalogName::REGIMEN_FISCAL => XlsCatalogs::regimenesFiscales($dir)->claves(),
+            ]),
+        );
 
         $this->assertSame([], $problemas, "Catálogos desfasados:\n- " . implode("\n- ", $problemas));
     }

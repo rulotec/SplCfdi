@@ -65,6 +65,22 @@ final class RuleFormatoConceptosTest extends TestCase
         ));
     }
 
+    public function testLaBaseDelHostSoloVaConCuota(): void
+    {
+        $violaciones = $this->check(
+            Fixtures::conceptoConObjetoImp('10.00', '02', [new ImpuestoTrasladado('003', TipoFactor::Cuota, '6.453000')]),
+            Fixtures::conceptoConObjetoImp('10.00', '02', [new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.160000', '5')]),
+            Fixtures::conceptoConObjetoImp('10.00', '02', [new ImpuestoTrasladado('003', TipoFactor::Cuota, '6.453000', '1,5')]),
+            Fixtures::conceptoConObjetoImp('10.00', '02', [new ImpuestoTrasladado('003', TipoFactor::Cuota, '6.453000', '40')]),
+        );
+
+        $this->assertCodigos(['base-cuota-requerida', 'base-solo-con-cuota', 'formato-decimal'], $violaciones);
+        $this->assertSame(
+            ['Concepto[1].Traslado[1].Base', 'Concepto[2].Traslado[1].Base', 'Concepto[3].Traslado[1].Base'],
+            array_map(fn (Violation $v) => $v->campo, $violaciones)
+        );
+    }
+
     public function testReportaTodosLosErroresDeTodosLosConceptosConSuUbicacion(): void
     {
         $violaciones = $this->check(

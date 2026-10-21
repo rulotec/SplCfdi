@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Domain\Rules;
 
 use PHPUnit\Framework\TestCase;
-use SplCfdi\Domain\Models\{Comprobante, Emisor, ImpuestoTrasladado, InformacionGlobal, Receptor, TipoFactor};
+use SplCfdi\Domain\Models\{CfdiRelacionados, Comprobante, Concepto, Emisor, ImpuestoTrasladado, InformacionGlobal, Receptor, TipoFactor};
 use SplCfdi\Domain\Rules\RuleCatalogos;
 use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Tests\Support\AssertsRules;
@@ -94,6 +94,37 @@ final class RuleCatalogosTest extends TestCase
         );
 
         $this->assertCodigos(['catalogo-invalido'], $this->check($c));
+    }
+
+    public function testRevisaLosCatalogosGrandes(): void
+    {
+        $concepto = new Concepto(
+            claveProdServ: '99999999', cantidad: '1', claveUnidad: 'ZZZ', unidad: 'Servicio', descripcion: 'Prueba',
+            valorUnitario: '100.00', objetoImp: '01', impuestosTrasladados: [],
+        );
+        $c = Fixtures::comprobanteCon(
+            [$concepto], new Receptor('EKU9003173C9', 'RECEPTOR', '00001', '601', 'G03'), null, lugarExpedicion: '00002'
+        );
+
+        $violaciones = $this->check($c);
+
+        $this->assertSame(
+            ['LugarExpedicion', 'Receptor.DomicilioFiscalReceptor', 'Concepto[1].ClaveProdServ', 'Concepto[1].ClaveUnidad'],
+            array_map(fn (Violation $v) => $v->campo, $violaciones)
+        );
+        $this->assertSame('LugarExpedicion "00002" no existe en el catálogo c_CodigoPostal.', $violaciones[0]->message);
+    }
+
+    public function testRechazaUnTipoRelacionDesconocido(): void
+    {
+        $c = Fixtures::comprobanteCon(
+            [Fixtures::concepto('100.00')], Fixtures::receptorNominativo(), null,
+            cfdiRelacionados: [new CfdiRelacionados('99', ['5FB2822E-396D-4725-8521-CDC4BDD20CCF'])]
+        );
+
+        $violaciones = $this->check($c);
+        $this->assertCodigos(['catalogo-invalido'], $violaciones);
+        $this->assertSame('CfdiRelacionados[1].TipoRelacion', $violaciones[0]->campo);
     }
 
     /** @return Violation[] */

@@ -22,4 +22,16 @@ final class TipoDeComprobante
     {
         return in_array($tipo, [self::TRASLADO, self::PAGO], true);
     }
+
+    /** Tipos que no admiten FormaPago (CFDI40103). */
+    public static function sinFormaPago(string $tipo): bool
+    {
+        return in_array($tipo, [self::TRASLADO, self::NOMINA, self::PAGO], true);
+    }
+
+    /** Tipos que no admiten MetodoPago (CFDI40125); la nómina sí lo lleva. */
+    public static function sinMetodoPago(string $tipo): bool
+    {
+        return in_array($tipo, [self::TRASLADO, self::PAGO], true);
+    }
 }

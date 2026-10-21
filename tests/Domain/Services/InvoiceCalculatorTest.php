@@ -7,7 +7,7 @@ namespace SplCfdi\Tests\Domain\Services;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
-use SplCfdi\Domain\Models\{Comprobante, Concepto, ImpuestoRetenido, TipoFactor, Moneda};
+use SplCfdi\Domain\Models\{Comprobante, Concepto, ImpuestoRetenido, ImpuestoTrasladado, TipoFactor};
 use SplCfdi\Domain\Services\InvoiceCalculator;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -59,7 +59,7 @@ final class InvoiceCalculatorTest extends TestCase
     public function testRespetaLosDecimalesDeLaMoneda(): void
     {
         $r = $this->calculator->calculate(
-            Fixtures::comprobante([Fixtures::concepto('1000')], new Moneda('JPY', 0))
+            Fixtures::comprobante([Fixtures::concepto('1000')], 'JPY')
         );
 
         $this->assertSame('1000', $r->importes->subTotal);
@@ -259,5 +259,45 @@ final class InvoiceCalculatorTest extends TestCase
 
         $this->assertSame('2.13', $r->impuestos->totalImpuestosRetenidos);
         $this->assertSame('21.07', $r->importes->total);   // 20.00 + 3.20 − 2.13
+    }
+
+    /** LIVA art. 12: el IEPS trasladado forma parte de la base del IVA. */
+    public function testLaBaseDelIvaIncluyeElIeps(): void
+    {
+        $concepto = new Concepto(
+            claveProdServ: '50202306', cantidad: '1', claveUnidad: 'H87', unidad: 'Pieza', descripcion: 'Refresco',
+            valorUnitario: '100.00', objetoImp: '02',
+            impuestosTrasladados: [
+                new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.160000'),   // el orden del host se respeta
+                new ImpuestoTrasladado('003', TipoFactor::Tasa, '0.080000'),
+            ],
+        );
+
+        $r = $this->calculator->calculate(Fixtures::comprobante([$concepto]));
+        [$iva, $ieps] = $r->conceptos[0]->traslados;
+
+        $this->assertSame(['002', '108.000000', '17.280000'], [$iva->impuesto, $iva->base, $iva->importe]);
+        $this->assertSame(['003', '100.000000', '8.000000'], [$ieps->impuesto, $ieps->base, $ieps->importe]);
+        $this->assertSame('125.28', $r->importes->total);
+    }
+
+    /** Con Cuota la base son unidades (litros) y el importe, unidades × cuota. */
+    public function testIepsPorCuota(): void
+    {
+        $concepto = new Concepto(
+            claveProdServ: '15101514', cantidad: '40', claveUnidad: 'LTR', unidad: 'Litro', descripcion: 'Gasolina',
+            valorUnitario: '20.00', objetoImp: '02',
+            impuestosTrasladados: [
+                new ImpuestoTrasladado('003', TipoFactor::Cuota, '6.453000', '40'),
+                new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.160000'),
+            ],
+        );
+
+        $r = $this->calculator->calculate(Fixtures::comprobante([$concepto]));
+        [$ieps, $iva] = $r->conceptos[0]->traslados;
+
+        $this->assertSame(['40.000000', '258.120000'], [$ieps->base, $ieps->importe]);
+        $this->assertSame(['1058.120000', '169.299200'], [$iva->base, $iva->importe]);
+        $this->assertSame('1227.42', $r->importes->total);   // 800 + 258.12 + 169.30
     }
 }

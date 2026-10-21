@@ -9,6 +9,7 @@ final class ImpuestoTrasladado
     public function __construct(
         public readonly string $impuesto,
         public readonly TipoFactor $tipoFactor,
-        public readonly ?string $tasaOCuota = null,   // obligatoria con Tasa, ausente con Exento
+        public readonly ?string $tasaOCuota = null,   // obligatoria con Tasa o Cuota, ausente con Exento
+        public readonly ?string $base = null,         // solo con Cuota: las unidades gravadas (p. ej. litros)
     ) {}
 }

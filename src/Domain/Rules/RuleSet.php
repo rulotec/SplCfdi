@@ -6,6 +6,8 @@ namespace SplCfdi\Domain\Rules;
 
 use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Domain\Contracts\Clock;
+use SplCfdi\Domain\Contracts\DecimalMath;
+use SplCfdi\Domain\Contracts\TipoCambioFix;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 
 final class RuleSet implements Rule
@@ -13,7 +15,8 @@ final class RuleSet implements Rule
     /** @param Rule[] $rules */
     public function __construct(private readonly array $rules) {}
 
-    public static function standard(Clock $clock, Catalogs $catalogs): self
+    /** @param TipoCambioFix|null $fix sin él no se revisa el rango del TipoCambio */
+    public static function standard(Clock $clock, Catalogs $catalogs, DecimalMath $math, ?TipoCambioFix $fix = null): self
     {
         return new self([
             new RuleFechaDentroDeVentana($clock),
@@ -24,9 +27,14 @@ final class RuleSet implements Rule
             new RuleMesesSegunPeriodicidad(),
             new RuleBimestralSoloRif(),
             new RuleMetodoPagoPueEnGlobal(),
+            new RuleMetodoYFormaPago(),
+            new RuleTipoCambio($catalogs->monedas, $math, $fix),
+            new RuleRfcGenerico(),
+            new RuleRegimenFiscalPersona($catalogs->regimenesFiscales),
             new RuleDescuentoPorTipoDeComprobante(),
             new RuleRegimenUsoCfdi(),
             new RuleObjetoImpCoherente(),
+            new RuleTasaOCuota($catalogs->tasasOCuotas, $math),
             new RuleDescuentoNoMayorQueImporte(),
             new RuleBaseNoCero(),
             new RuleTotalNoNegativo(),

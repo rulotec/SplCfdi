@@ -12,4 +12,5 @@ final class UsoCfdi
     public const CATALOGO = CatalogName::USO_CFDI;
 
     public const SIN_EFECTOS_FISCALES = 'S01';
+    public const PAGOS = 'CP01';
 }

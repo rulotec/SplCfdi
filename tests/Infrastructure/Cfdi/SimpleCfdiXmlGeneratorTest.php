@@ -8,8 +8,9 @@ use DOMElement;
 use DOMXPath;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
-use SplCfdi\Domain\Exceptions\XmlSchemaValidationException;
+use SplCfdi\Domain\Models\CfdiRelacionados;
 use SplCfdi\Domain\Models\Concepto;
+use SplCfdi\Domain\Models\ImpuestoTrasladado;
 use SplCfdi\Domain\Models\ImpuestoRetenido;
 use SplCfdi\Domain\Models\TipoFactor;
 use SplCfdi\Domain\Services\InvoiceCalculator;
@@ -82,12 +83,12 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
     /** El bug de los 12 decimales que corregimos: el XSD debe detectarlo. */
     public function testElXsdRechazaUnImporteConMasDeSeisDecimales(): void
     {
-        $xp = $this->xpathDe(Fixtures::withSealPlaceholders($this->generar([Fixtures::concepto('1000.00')])));
+        $xp = $this->xpathDe($this->generar([Fixtures::concepto('1000.00')]));
         $this->elemento($xp, '//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado')
             ->setAttribute('Importe', '160.000000000000');
 
-        $this->expectException(XmlSchemaValidationException::class);
-        (new LibXmlSchemaValidator())->validate((string) $xp->document->saveXML());
+        $violaciones = (new LibXmlSchemaValidator())->validate((string) $xp->document->saveXML());
+        $this->assertSame(['Concepto[1].Traslado[1].Importe'], array_map(fn ($v) => $v->campo, $violaciones));
     }
 
     public function testElXmlConDescuentoCumpleConElEsquema(): void
@@ -163,6 +164,59 @@ final class SimpleCfdiXmlGeneratorTest extends TestCase
 
         $this->assertSame(0, $this->contar($this->xpathDe($xml), '/cfdi:Comprobante/cfdi:InformacionGlobal'));
 
+        $this->assertCumpleConElEsquema($xml);
+    }
+
+    public function testGeneraTipoCambioYConfirmacion(): void
+    {
+        $c = Fixtures::comprobanteCon(
+            [Fixtures::concepto('100.00')], Fixtures::receptorNominativo(), null, 'USD',
+            tipoCambio: '17.512300', confirmacion: 'Ab123'
+        );
+        $xml = $this->generator->generate($this->calculator->calculate($c));
+        $xp = $this->xpathDe($xml);
+
+        $this->assertSame('17.512300', $xp->evaluate('string(/cfdi:Comprobante/@TipoCambio)'));
+        $this->assertSame('Ab123', $xp->evaluate('string(/cfdi:Comprobante/@Confirmacion)'));
+        $this->assertCumpleConElEsquema($xml);
+    }
+
+    public function testGeneraLosCfdiRelacionadosDespuesDeInformacionGlobal(): void
+    {
+        $c = Fixtures::comprobanteCon(
+            [Fixtures::concepto('100.00')], Fixtures::receptorPublicoEnGeneral(), Fixtures::informacionGlobal(),
+            tipoDeComprobante: 'E', metodoPago: 'PUE', formaPago: '01',
+            cfdiRelacionados: [
+                new CfdiRelacionados('01', ['5FB2822E-396D-4725-8521-CDC4BDD20CCF', '6F9A1B2C-1234-4ABC-9DEF-0123456789AB']),
+                new CfdiRelacionados('04', ['0C1D2E3F-4A5B-4C6D-8E7F-9A0B1C2D3E4F']),
+            ]
+        );
+        $xml = $this->generator->generate($this->calculator->calculate($c));
+        $xp = $this->xpathDe($xml);
+
+        $this->assertSame(
+            ['InformacionGlobal', 'CfdiRelacionados', 'CfdiRelacionados', 'Emisor', 'Receptor', 'Conceptos', 'Impuestos'],
+            $this->nombresDeHijos($xp, '/cfdi:Comprobante/*')
+        );
+        $this->assertSame('01', $xp->evaluate('string(/cfdi:Comprobante/cfdi:CfdiRelacionados[1]/@TipoRelacion)'));
+        $this->assertSame(2, $this->contar($xp, '/cfdi:Comprobante/cfdi:CfdiRelacionados[1]/cfdi:CfdiRelacionado'));
+        $this->assertCumpleConElEsquema($xml);
+    }
+
+    public function testGeneraIepsPorCuota(): void
+    {
+        $concepto = new Concepto(
+            claveProdServ: '15101514', cantidad: '40', claveUnidad: 'LTR', unidad: 'Litro', descripcion: 'Gasolina',
+            valorUnitario: '20.00', objetoImp: '02',
+            impuestosTrasladados: [new ImpuestoTrasladado('003', TipoFactor::Cuota, '6.453000', '40')],
+        );
+        $xml = $this->generar([$concepto]);
+        $traslado = $this->elemento($this->xpathDe($xml), '//cfdi:Concepto/cfdi:Impuestos/cfdi:Traslados/cfdi:Traslado');
+
+        $this->assertSame(['40.000000', 'Cuota', '6.453000', '258.120000'], [
+            $traslado->getAttribute('Base'), $traslado->getAttribute('TipoFactor'),
+            $traslado->getAttribute('TasaOCuota'), $traslado->getAttribute('Importe'),
+        ]);
         $this->assertCumpleConElEsquema($xml);
     }
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Services;
 
+use SplCfdi\Domain\Catalogs\Claves\Impuesto;
+use SplCfdi\Domain\Catalogs\Monedas;
 use SplCfdi\Domain\Models\Comprobante;
 use SplCfdi\Domain\Models\Concepto;
 use SplCfdi\Domain\Models\ImpuestoRetenido;
@@ -25,12 +27,15 @@ final class InvoiceCalculator
         private readonly DecimalMath $math,
         private readonly ImpuestoTrasladadoAggregator $trasladoAggregator,
         private readonly ImpuestoRetenidoAggregator $retencionAggregator,
-        private readonly DecimalConfiguration $decimalConfig
+        private readonly DecimalConfiguration $decimalConfig,
+        private readonly Monedas $monedas,
     ) {}
 
     public function calculate(Comprobante $comprobante): ComprobanteCalculado
     {
-        $decimales = $comprobante->moneda->decimales;
+        // FormatRuleSet garantiza que la moneda exista en c_Moneda (violación moneda-desconocida).
+        $decimales = $this->monedas->decimales($comprobante->moneda)
+            ?? throw new \LogicException("Moneda desconocida {$comprobante->moneda}: valida con FormatRuleSet antes de calcular.");
 
         // array_values: lista, no mapa (array_merge(...) más abajo no admite claves de texto)
         $conceptos = array_map(
@@ -81,14 +86,47 @@ final class InvoiceCalculator
         ? $importe
         : $this->math->round($this->math->subtract($importe, $descuento), $this->decimalConfig->conceptScale);
 
+        // El IVA se calcula al final: su base incluye el IEPS trasladado del concepto
+        // (LIVA art. 12: el valor de la operación incluye los demás impuestos, salvo el IVA).
+        $trasladosIniciales = array_values($concepto->impuestosTrasladados);
+        $traslados = [];
+        foreach ($trasladosIniciales as $k => $t) {
+            if ($t->impuesto !== Impuesto::IVA) {
+                $traslados[$k] = $this->calcularTraslado($base, $t);
+            }
+        }
+
+        $baseIva = $this->baseIva($base, $traslados);
+        foreach ($trasladosIniciales as $k => $t) {
+            if ($t->impuesto === Impuesto::IVA) {
+                $traslados[$k] = $this->calcularTraslado($baseIva, $t);
+            }
+        }
+        ksort($traslados);
+
         return new ConceptoCalculado(
             $concepto,
             $importe,
             $descuento,
             $base,
-            array_map(fn (ImpuestoTrasladado $i) => $this->calcularTraslado($base, $i), $concepto->impuestosTrasladados),
-            array_map(fn (ImpuestoRetenido $r) => $this->calcularRetencion($base, $r), $concepto->impuestosRetenidos),
-            );
+            array_values($traslados),
+            array_map(
+                fn (ImpuestoRetenido $r) => $this->calcularRetencion($r->impuesto === Impuesto::IVA ? $baseIva : $base, $r),
+                array_values($concepto->impuestosRetenidos)
+            ),
+        );
+    }
+
+    /** @param ImpuestoTrasladadoCalculado[] $traslados los que no son IVA */
+    private function baseIva(string $base, array $traslados): string
+    {
+        foreach ($traslados as $t) {
+            if ($t->impuesto === Impuesto::IEPS && $t->importe !== null) {
+                $base = $this->math->add($base, $t->importe);
+            }
+        }
+
+        return $this->math->round($base, $this->decimalConfig->conceptScale);
     }
 
     /**
@@ -136,10 +174,11 @@ final class InvoiceCalculator
             return new ImpuestoTrasladadoCalculado($base, $impuesto->impuesto, TipoFactor::Exento, null, null);
         }
 
-        // FormatRuleSet garantiza la tasa en un traslado Tasa (violación tasa-requerida).
+        // FormatRuleSet garantiza la tasa en un traslado Tasa o Cuota (violación tasa-requerida).
         $tasa = $this->normalizarTasa(
             $impuesto->tasaOCuota ?? throw new \LogicException('Traslado sin TasaOCuota: valida con FormatRuleSet antes de calcular.')
         );
+        $base = $this->baseDelImpuesto($base, $impuesto->tipoFactor, $impuesto->base);
 
         return new ImpuestoTrasladadoCalculado(
             base: $base,
@@ -153,6 +192,7 @@ final class InvoiceCalculator
     private function calcularRetencion(string $base, ImpuestoRetenido $retencion): ImpuestoRetenidoCalculado
     {
         $tasa = $this->normalizarTasa($retencion->tasaOCuota);
+        $base = $this->baseDelImpuesto($base, $retencion->tipoFactor, $retencion->base);
 
         return new ImpuestoRetenidoCalculado(
             base: $base,
@@ -161,6 +201,22 @@ final class InvoiceCalculator
             tasaOCuota: $tasa,
             importe: $this->importeImpuesto($base, $tasa),
             );
+    }
+
+    /**
+     * Con Cuota la base son unidades (litros, piezas…) que indica el host, no un importe;
+     * FormatRuleSet garantiza que venga (violación base-cuota-requerida).
+     */
+    private function baseDelImpuesto(string $baseConcepto, TipoFactor $factor, ?string $baseCuota): string
+    {
+        if ($factor !== TipoFactor::Cuota) {
+            return $baseConcepto;
+        }
+
+        return $this->math->round(
+            $baseCuota ?? throw new \LogicException('Impuesto por Cuota sin Base: valida con FormatRuleSet antes de calcular.'),
+            $this->decimalConfig->conceptScale
+        );
     }
 
     /** Las tasas siempre se normalizan a TASA_SCALE decimales (0.16 → 0.160000). */

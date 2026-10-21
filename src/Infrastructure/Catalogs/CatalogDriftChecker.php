@@ -98,4 +98,32 @@ final class CatalogDriftChecker
 
         return $issues;
     }
+
+    /**
+     * Las claves de los datos de catCFDI.xls deben ser las mismas que las del catálogo embebido (XSD menos
+     * exclusiones). Una clave que el XSD aún lista pero el XLS ya no, casi siempre es una baja: va a _excluded.php.
+     *
+     * @param array<string, string[]> $embedded
+     * @param array<string, string[]> $xls catálogo => claves leídas del XLS
+     *
+     * @return string[]
+     */
+    public function xlsIssues(array $embedded, array $xls): array
+    {
+        $issues = [];
+
+        foreach ($xls as $catalogo => $claves) {
+            if (!isset($embedded[$catalogo])) {
+                continue;
+            }
+            foreach (array_diff($embedded[$catalogo], $claves) as $clave) {
+                $issues[] = "$catalogo: \"$clave\" está en el XSD pero no en catCFDI.xls (¿dada de baja? agrégala a _excluded.php).";
+            }
+            foreach (array_diff($claves, $embedded[$catalogo]) as $clave) {
+                $issues[] = "$catalogo: \"$clave\" está en catCFDI.xls pero no en el catálogo embebido (¿falta actualizar el XSD?).";
+            }
+        }
+
+        return $issues;
+    }
 }

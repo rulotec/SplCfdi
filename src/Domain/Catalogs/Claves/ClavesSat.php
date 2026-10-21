@@ -20,6 +20,8 @@ final class ClavesSat
         RegimenFiscal::class,
         UsoCfdi::class,
         Impuesto::class,
+        FormaPago::class,
+        Moneda::class,
     ];
 
     /** @return array<string, array<string, string>> catálogo => [Clase::CONSTANTE => clave] */

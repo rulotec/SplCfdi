@@ -10,5 +10,6 @@ final class ImpuestoRetenido
         public readonly string $impuesto,
         public readonly TipoFactor $tipoFactor,   // una retención no puede ser Exento
         public readonly string $tasaOCuota,
+        public readonly ?string $base = null,     // solo con Cuota: las unidades gravadas
     ) {}
 }

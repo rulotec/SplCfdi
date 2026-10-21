@@ -43,7 +43,7 @@ final class RuleFechaDentroDeVentanaTest extends TestCase
     public function testInterpretaLaHoraDelXmlEnLaZonaDelReloj(): void
     {
         $fecha = new DateTimeImmutable('2026-10-01T18:00:00', new DateTimeZone('UTC'));
-        $comprobante = Fixtures::comprobante([Fixtures::concepto('100.00')], null, $fecha);
+        $comprobante = Fixtures::comprobante([Fixtures::concepto('100.00')], fecha: $fecha);
 
         $this->assertCodigos(['fecha-futura'], $this->violaciones('2026-10-01T13:00:00', $comprobante));
     }

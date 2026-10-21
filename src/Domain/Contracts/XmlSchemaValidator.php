@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Contracts;
 
-use SplCfdi\Domain\Exceptions\XmlSchemaValidationException;
+use SplCfdi\Domain\Rules\Violation;
 
 interface XmlSchemaValidator
 {
-    /** @throws XmlSchemaValidationException si el XML no es válido contra el esquema */
-    public function validate(string $xml): void;
+    /** @return Violation[] vacío si el XML cumple el esquema; los mensajes son para el usuario final */
+    public function validate(string $xml): array;
 }

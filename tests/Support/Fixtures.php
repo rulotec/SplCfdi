@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace SplCfdi\Tests\Support;
 
-use DOMDocument;
 use DateTimeImmutable;
 use DateTimeZone;
 use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
-use SplCfdi\Domain\Models\{Comprobante, Concepto, Emisor, ImpuestoRetenido, ImpuestoTrasladado, Moneda, Receptor, TipoFactor};
+use SplCfdi\Domain\Models\{CfdiRelacionados, Comprobante, Concepto, Emisor, ImpuestoRetenido, ImpuestoTrasladado, Receptor, TipoFactor};
 use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Models\InformacionGlobal;
 
@@ -97,7 +96,7 @@ final class Fixtures
      *
      * @param Concepto[] $conceptos
      */
-    public static function comprobante(array $conceptos, ?Moneda $moneda = null, ?DateTimeImmutable $fecha = null): Comprobante
+    public static function comprobante(array $conceptos, string $moneda = 'MXN', ?DateTimeImmutable $fecha = null): Comprobante
     {
         return self::comprobanteCon(
             $conceptos, self::receptorPublicoEnGeneral(), self::informacionGlobal(), $moneda, $fecha,
@@ -115,27 +114,34 @@ final class Fixtures
         return self::comprobanteCon($conceptos, self::receptorNominativo(), null);
     }
 
-    /** @param Concepto[] $conceptos */
+    /**
+     * @param Concepto[]         $conceptos
+     * @param CfdiRelacionados[] $cfdiRelacionados
+     */
     public static function comprobanteCon(
         array $conceptos,
         Receptor $receptor,
         ?InformacionGlobal $informacionGlobal,
-        ?Moneda $moneda = null,
+        string $moneda = 'MXN',
         ?DateTimeImmutable $fecha = null,
         string $tipoDeComprobante = 'I',
         string $lugarExpedicion = '62000',
         ?string $metodoPago = null,
         ?string $formaPago = null,
         ?Emisor $emisor = null,
+        ?string $tipoCambio = null,
+        ?string $confirmacion = null,
+        array $cfdiRelacionados = [],
         ): Comprobante {
             return new Comprobante(
                 version: '4.0', fecha: $fecha ?? new DateTimeImmutable('2026-10-01T12:00:00'),
-                moneda: $moneda ?? Moneda::mxn(), tipoDeComprobante: $tipoDeComprobante, exportacion: '01',
+                moneda: $moneda, tipoDeComprobante: $tipoDeComprobante, exportacion: '01',
                 lugarExpedicion: $lugarExpedicion,
                 emisor: $emisor ?? new Emisor('AAA010101AAA', 'EMPRESA DE PRUEBA', '601'),
                 receptor: $receptor, conceptos: $conceptos,
                 metodoPago: $metodoPago, formaPago: $formaPago,
                 informacionGlobal: $informacionGlobal,
+                tipoCambio: $tipoCambio, confirmacion: $confirmacion, cfdiRelacionados: $cfdiRelacionados,
                 );
     }
 
@@ -147,19 +153,5 @@ final class Fixtures
     public static function calculado(Comprobante $comprobante): ComprobanteCalculado
     {
         return CfdiFactory::createCalculator()->calculate($comprobante);
-    }
-
-    /** Simula lo que hará el Sealer, para poder validar contra el XSD antes de que exista. */
-    public static function withSealPlaceholders(string $xml): string
-    {
-        $dom = new DOMDocument();
-        $dom->loadXML($xml);
-
-        $root = $dom->documentElement ?? throw new \LogicException('XML sin elemento raíz.');
-        $root->setAttribute('Sello', 'AAAA');
-        $root->setAttribute('NoCertificado', '30001000000500003456');
-        $root->setAttribute('Certificado', 'AAAA');
-
-        return (string) $dom->saveXML();
     }
 }

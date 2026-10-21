@@ -6,8 +6,9 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use SplCfdi\Domain\Catalogs\CatalogName;
-use SplCfdi\Infrastructure\Catalogs\{CatalogDriftChecker, CatalogExclusions, CatalogFileWriter, CatalogXsdReader, EmbeddedCatalogs};
+use SplCfdi\Infrastructure\Catalogs\{CatalogDriftChecker, CatalogExclusions, CatalogFileWriter, CatalogXlsReader, CatalogXsdReader, EmbeddedCatalogs, XlsCatalogs};
 use SplCfdi\Infrastructure\Resources;
+use SplCfdi\Infrastructure\Xml\ValidationSchemas;
 
 const SAT_XSD_URL = 'http://www.sat.gob.mx/sitio_internet/cfd/catalogos/catCFDI.xsd';
 
@@ -19,9 +20,11 @@ function fail(string $message): never
 
 $usage = <<<TXT
 Uso: php bin/cfdi-catalogs <check|write> [--xsd=ruta] [--dir=ruta] [--fetch]
+     php bin/cfdi-catalogs xls (--xls=catCFDI.xls | --csv=carpeta) [--dir=ruta]
 
   check    compara los catálogos embebidos con catCFDI.xsd (código 1 si hay diferencias)
-  write    regenera resources/catalogs/*.php desde catCFDI.xsd
+  write    regenera resources/catalogs/*.php y resources/xsd/validacion desde catCFDI.xsd
+  xls      regenera resources/catalogs/xls/*.php desde catCFDI.xls (requiere LibreOffice con --xls)
   --xsd    XSD a usar (por defecto resources/xsd/catCFDI.xsd)
   --dir    carpeta de catálogos embebidos (por defecto resources/catalogs)
   --fetch  descarga el XSD vigente del SAT a un archivo temporal y usa ese
@@ -39,13 +42,17 @@ foreach ($args as $arg) {
     $options[$m[1]] = $m[2] ?? true;
 }
 
-if (!in_array($command, ['check', 'write'], true)) {
+if (!in_array($command, ['check', 'write', 'xls'], true)) {
     echo $usage;
     exit($command === 'help' ? 0 : 2);
 }
 
 $dir = is_string($options['dir'] ?? null) ? $options['dir'] : EmbeddedCatalogs::defaultDir();
 $xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : Resources::path('xsd/catCFDI.xsd');
+
+if ($command === 'xls') {
+    exit(importXls($options, $dir));
+}
 
 if (isset($options['fetch'])) {
     $data = @file_get_contents(SAT_XSD_URL, false, stream_context_create(['http' => ['timeout' => 30]]));
@@ -81,6 +88,14 @@ $checker = new CatalogDriftChecker();
 $drifts = $checker->compare($embedded, $xsd);
 $issues = $checker->matrixIssues($xsd);
 $clavesIssues = $checker->clavesIssues($xsd);
+try {
+    $xlsIssues = $checker->xlsIssues($xsd, [
+        CatalogName::MONEDA => XlsCatalogs::monedas($dir)->codigos(),
+        CatalogName::REGIMEN_FISCAL => XlsCatalogs::regimenesFiscales($dir)->claves(),
+    ]);
+} catch (RuntimeException $e) {
+    $xlsIssues = [$e->getMessage()];
+}
 
 foreach ($drifts as $drift) {
     if ($drift->missingInXsd) {
@@ -89,12 +104,8 @@ foreach ($drifts as $drift) {
     }
 
     echo "[{$drift->catalog}]\n";
-    foreach ($drift->added as $value) {
-        echo "  + $value  (nuevo en el SAT)\n";
-    }
-    foreach ($drift->removed as $value) {
-        echo "  - $value  (ya no está en el SAT)\n";
-    }
+    printDrift($drift->added, '+', 'nuevo en el SAT');
+    printDrift($drift->removed, '-', 'ya no está en el SAT');
 }
 
 foreach ($issues as $issue) {
@@ -104,7 +115,22 @@ foreach ($issues as $issue) {
 foreach ($clavesIssues as $issue) {
     echo "[claves] $issue\n";
 }
-$issues = [...$issues, ...$clavesIssues];
+foreach ($xlsIssues as $issue) {
+    echo "[xls] $issue\n";
+}
+$issues = [...$issues, ...$clavesIssues, ...$xlsIssues];
+
+if ($command === 'check') {
+    try {
+        $stale = ValidationSchemas::staleFiles(Resources::path('xsd'), Resources::path(ValidationSchemas::DIR));
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
+    foreach ($stale as $file) {
+        echo "[xsd] " . ValidationSchemas::DIR . "/$file está desactualizado (php bin/cfdi-catalogs write)\n";
+        $drifts[] = $file;
+    }
+}
 
 if ($command === 'check') {
     if ($drifts === [] && $issues === []) {
@@ -124,7 +150,96 @@ foreach ($xsd as $name => $values) {
 }
 
 echo count($xsd) . " catálogos escritos en $dir\n";
+
+try {
+    ValidationSchemas::write(Resources::path('xsd'), Resources::path(ValidationSchemas::DIR));
+} catch (RuntimeException $e) {
+    fail($e->getMessage());
+}
+echo 'Copia de validación de los XSD escrita en resources/' . ValidationSchemas::DIR . "\n";
 if ($issues !== []) {
     echo "Atención: UsoCfdiMatrix y Domain/Catalogs/Claves se mantienen a mano; revisa los avisos [matriz] y [claves].\n";
 }
 exit($issues === [] ? 0 : 1);
+
+/**
+ * Los catálogos grandes pueden traer cientos de cambios: se muestran los primeros.
+ *
+ * @param string[] $values
+ */
+function printDrift(array $values, string $sign, string $note): void
+{
+    $max = 30;
+    foreach (array_slice($values, 0, $max) as $value) {
+        echo "  $sign $value  ($note)\n";
+    }
+    if (count($values) > $max) {
+        echo sprintf("  $sign … y %d más\n", count($values) - $max);
+    }
+}
+
+/**
+ * Importa de catCFDI.xls las columnas que el XSD no trae y avisa si sus claves difieren del XSD.
+ *
+ * @param array<string, string|true> $options
+ */
+function importXls(array $options, string $dir): int
+{
+    $csvDir = is_string($options['csv'] ?? null) ? $options['csv'] : null;
+
+    if ($csvDir === null) {
+        $xls = is_string($options['xls'] ?? null) ? $options['xls'] : fail('Indica --xls=catCFDI.xls o --csv=carpeta.');
+        if (!is_file($xls)) {
+            fail("No se encontró $xls");
+        }
+
+        $csvDir = sys_get_temp_dir() . '/cfdi-catalogs-' . bin2hex(random_bytes(4));
+        mkdir($csvDir);
+        register_shutdown_function(static function () use ($csvDir): void {
+            array_map('unlink', glob("$csvDir/*") ?: []);
+            @rmdir($csvDir);
+        });
+
+        $filtro = 'csv:Text - txt - csv (StarCalc):44,34,76,1,,0,false,true,false,false,false,-1';
+        $cmd = sprintf('libreoffice --headless --convert-to %s --outdir %s %s 2>&1',
+            escapeshellarg($filtro), escapeshellarg($csvDir), escapeshellarg($xls));
+        exec($cmd, $salida, $codigo);
+        if ($codigo !== 0) {
+            fail("No se pudo convertir $xls con LibreOffice:\n" . implode("\n", $salida));
+        }
+    }
+
+    try {
+        $reader = new CatalogXlsReader($csvDir, new DateTimeImmutable('today'));
+        $datos = [
+            XlsCatalogs::MONEDA => $reader->monedas(),
+            XlsCatalogs::REGIMEN_FISCAL => $reader->regimenesFiscales(),
+            XlsCatalogs::TASA_O_CUOTA => $reader->tasasOCuotas(),
+        ];
+        $xsd = [];
+        foreach ([CatalogName::MONEDA, CatalogName::REGIMEN_FISCAL] as $name) {
+            $xsd[$name] = EmbeddedCatalogs::read($dir, $name);
+        }
+    } catch (RuntimeException $e) {
+        fail($e->getMessage());
+    }
+
+    if (!is_dir("$dir/" . XlsCatalogs::DIR)) {
+        mkdir("$dir/" . XlsCatalogs::DIR, 0775, true);
+    }
+    foreach ($datos as $name => $data) {
+        file_put_contents(XlsCatalogs::path($dir, $name), CatalogFileWriter::renderData($name, $data));
+        echo "[$name] " . count($data) . " filas escritas\n";
+    }
+
+    $issues = (new CatalogDriftChecker())->xlsIssues($xsd, [
+        CatalogName::MONEDA => array_map('strval', array_keys($datos[XlsCatalogs::MONEDA])),
+        CatalogName::REGIMEN_FISCAL => array_map('strval', array_keys($datos[XlsCatalogs::REGIMEN_FISCAL])),
+    ]);
+    foreach ($issues as $issue) {
+        echo "[xls] $issue\n";
+    }
+
+    return $issues === [] ? 0 : 1;
+}
+

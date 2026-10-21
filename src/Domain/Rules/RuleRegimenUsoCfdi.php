@@ -6,6 +6,7 @@ namespace SplCfdi\Domain\Rules;
 
 use SplCfdi\Domain\Catalogs\UsoCfdiMatrix;
 use SplCfdi\Domain\Models\ComprobanteCalculado;
+use SplCfdi\Domain\Models\TipoPersona;
 
 /**
  * UsoCFDI debe ser válido para el tipo de persona (por longitud del RFC) y para el RegimenFiscalReceptor.
@@ -25,17 +26,17 @@ final class RuleRegimenUsoCfdi implements Rule
 
         $violaciones = [];
 
-        // 12 caracteres = persona moral, 13 = persona física; otra longitud la reporta RuleFormatoRfc.
-        $longitud = strlen($receptor->rfc);
-        $permitida = match ($longitud) {
-            12 => $uso['moral'],
-            13 => $uso['fisica'],
-            default => true,
+        // Un RFC de otra longitud lo reporta RuleFormatoRfc.
+        $persona = TipoPersona::deRfc($receptor->rfc);
+        $permitida = match ($persona) {
+            TipoPersona::Moral => $uso['moral'],
+            TipoPersona::Fisica => $uso['fisica'],
+            null => true,
         };
         if (!$permitida) {
             $violaciones[] = new Violation('uso-cfdi-persona', sprintf(
                 'UsoCFDI "%s" no aplica a una persona %s (RFC %s).',
-                $receptor->usoCFDI, $longitud === 12 ? 'moral' : 'física', $receptor->rfc
+                $receptor->usoCFDI, $persona->value, $receptor->rfc
             ), 'Receptor.UsoCFDI');
         }
 

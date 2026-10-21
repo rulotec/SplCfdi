@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Rules;
 
+use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Models\Comprobante;
 
@@ -12,10 +13,10 @@ final class FormatRuleSet implements FormatRule
     /** @param FormatRule[] $rules */
     public function __construct(private readonly array $rules) {}
 
-    public static function standard(DecimalConfiguration $config): self
+    public static function standard(DecimalConfiguration $config, Catalogs $catalogs): self
     {
         return new self([
-            new RuleFormatoComprobante($config),
+            new RuleFormatoComprobante($config, $catalogs->monedas),
             new RuleFormatoRfc(),
             new RuleFormatoConceptos(),
         ]);

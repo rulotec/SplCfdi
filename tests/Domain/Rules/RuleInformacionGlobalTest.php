@@ -47,9 +47,9 @@ final class RuleInformacionGlobalTest extends TestCase
             [Fixtures::concepto('100.00')], Fixtures::receptorNominativo(), Fixtures::informacionGlobal()
         );
 
-        // Rfc, Nombre, RegimenFiscalReceptor y UsoCFDI difieren de los del público en general
+        // Rfc y Nombre difieren de los del público en general (régimen y uso: RuleRfcGenerico)
         $this->assertCodigos(
-            array_fill(0, 4, 'informacion-global-receptor'),
+            array_fill(0, 2, 'informacion-global-receptor'),
             $this->regla->check(Fixtures::calculado($c))
         );
     }

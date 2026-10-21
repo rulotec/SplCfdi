@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SplCfdi\Tests\Domain\Rules;
 
 use PHPUnit\Framework\TestCase;
+use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Models\Receptor;
 use SplCfdi\Domain\Rules\RuleSet;
+use SplCfdi\Infrastructure\Math\BcMathDecimalMath;
 use SplCfdi\Tests\Support\AssertsRules;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -18,7 +20,7 @@ final class RuleSetTest extends TestCase
     {
         $c = Fixtures::calculado(Fixtures::comprobante([Fixtures::concepto('100.00')]));
 
-        $this->assertCodigos([], RuleSet::standard(Fixtures::clock(), Fixtures::catalogs())->check($c));
+        $this->assertCodigos([], RuleSet::standard(Fixtures::clock(), Fixtures::catalogs(), new BcMathDecimalMath(DecimalConfiguration::sat()))->check($c));
     }
 
     public function testReuneTodasLasViolacionesYNoSoloLaPrimera(): void
@@ -28,7 +30,7 @@ final class RuleSetTest extends TestCase
 
         $this->assertCodigos(
             ['informacion-global-requerida', 'domicilio-receptor-generico'],
-            RuleSet::standard(Fixtures::clock(), Fixtures::catalogs())->check($c)
+            RuleSet::standard(Fixtures::clock(), Fixtures::catalogs(), new BcMathDecimalMath(DecimalConfiguration::sat()))->check($c)
         );
     }
 }

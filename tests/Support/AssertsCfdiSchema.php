@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace SplCfdi\Tests\Support;
 
-use SplCfdi\Domain\Exceptions\XmlSchemaValidationException;
+use SplCfdi\Domain\Rules\Violation;
 use SplCfdi\Infrastructure\Xml\LibXmlSchemaValidator;
 
 trait AssertsCfdiSchema
 {
-    /** El XML generado aún no está sellado: se le agregan marcadores de sello antes de validar. */
+    /** El validador pone valores ficticios de sello al XML aún no sellado. */
     private function assertCumpleConElEsquema(string $xml): void
     {
-        try {
-            (new LibXmlSchemaValidator())->validate(Fixtures::withSealPlaceholders($xml));
-        } catch (XmlSchemaValidationException $e) {
-            $this->fail($e->getMessage());
-        }
+        $violaciones = (new LibXmlSchemaValidator())->validate($xml);
 
-        $this->addToAssertionCount(1);
+        $this->assertSame([], array_map(fn (Violation $v) => "{$v->code} {$v->campo}: {$v->message}", $violaciones));
     }
 }

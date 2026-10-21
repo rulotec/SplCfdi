@@ -7,6 +7,7 @@ namespace SplCfdi\Domain\Models;
 enum TipoFactor: string
 {
     case Tasa = 'Tasa';
+    /** La TasaOCuota es un monto por unidad (p. ej. IEPS por litro) y la Base son las unidades. */
+    case Cuota = 'Cuota';
     case Exento = 'Exento';
-    // Cuota se omite a propósito: su Base es una cantidad, no un importe monetario.
 }

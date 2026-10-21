@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SplCfdi\Infrastructure\Catalogs;
 
-use SplCfdi\Domain\Catalogs\ArrayCatalog;
 use SplCfdi\Domain\Catalogs\CatalogName;
 use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Infrastructure\Resources;
 
-/** Carga los catálogos embebidos: un archivo resources/catalogs/<c_Nombre>.php por catálogo. */
+/**
+ * Carga los catálogos embebidos: un archivo resources/catalogs/<c_Nombre>.php por catálogo (claves, de
+ * catCFDI.xsd) y resources/catalogs/xls/<c_Nombre>.php para las columnas que solo trae catCFDI.xls.
+ */
 final class EmbeddedCatalogs
 {
     public static function defaultDir(): string
@@ -26,10 +28,15 @@ final class EmbeddedCatalogs
     {
         $dir ??= self::defaultDir();
 
-        return new Catalogs(array_map(
-            fn (string $name) => new ArrayCatalog($name, self::read($dir, $name)),
-            CatalogName::all()
-        ));
+        return new Catalogs(
+            array_map(
+                fn (string $name) => new LazyCatalog($name, fn () => self::read($dir, $name)),
+                CatalogName::all()
+            ),
+            XlsCatalogs::monedas($dir),
+            XlsCatalogs::regimenesFiscales($dir),
+            XlsCatalogs::tasasOCuotas($dir),
+        );
     }
 
     /** @return list<string> */
