@@ -7,6 +7,7 @@ namespace SplCfdi\Application;
 use SplCfdi\Domain\Contracts\CfdiXmlGenerator;
 use SplCfdi\Domain\Contracts\XmlSchemaValidator;
 use SplCfdi\Domain\Models\Comprobante;
+use SplCfdi\Domain\Models\ComprobanteCalculado;
 use SplCfdi\Domain\Rules\FormatRule;
 use SplCfdi\Domain\Rules\Rule;
 use SplCfdi\Domain\Rules\Violation;
@@ -38,7 +39,32 @@ final class CfdiService
         return $this->procesar($comprobante, false);
     }
 
-    private function procesar(Comprobante $comprobante, bool $conXml): CfdiResult
+    /**
+     * Borrador para revisar: calcula y genera el XML aunque haya violaciones de formato, para que el
+     * usuario vea dónde están. Si los datos ni siquiera permiten calcular (p. ej. un importe que no es
+     * número), devuelve las violaciones sin XML. El XML de un borrador con violaciones no debe sellarse.
+     */
+    public function draft(Comprobante $comprobante): CfdiResult
+    {
+        $formato = $this->formatRules->check($comprobante);
+        if ($formato === []) {
+            return $this->procesar($comprobante, true, true);
+        }
+
+        try {
+            $calculado = $this->calculator->calculate($comprobante);
+            $xml = $this->xmlGenerator->generate($calculado);
+        } catch (\Throwable) {
+            return new CfdiResult($formato);
+        }
+
+        $violaciones = [...$formato, ...$this->sinRepetir($this->revisarReglas($calculado), $formato)];
+        $violaciones = [...$violaciones, ...$this->sinRepetir($this->schemaValidator?->validate($xml) ?? [], $violaciones)];
+
+        return new CfdiResult($violaciones, $calculado, $xml);
+    }
+
+    private function procesar(Comprobante $comprobante, bool $conXml, bool $siempreXml = false): CfdiResult
     {
         $formato = $this->formatRules->check($comprobante);
         if ($formato !== []) {
@@ -55,7 +81,21 @@ final class CfdiService
         $xml = $this->xmlGenerator->generate($calculado);
         $violaciones = [...$violaciones, ...$this->sinRepetir($this->schemaValidator?->validate($xml) ?? [], $violaciones)];
 
-        return new CfdiResult($violaciones, $calculado, $conXml && $violaciones === [] ? $xml : null);
+        return new CfdiResult($violaciones, $calculado, $conXml && ($siempreXml || $violaciones === []) ? $xml : null);
+    }
+
+    /**
+     * Con datos de formato inválido las reglas del SAT pueden fallar; las que fallen se omiten del borrador.
+     *
+     * @return Violation[]
+     */
+    private function revisarReglas(ComprobanteCalculado $calculado): array
+    {
+        try {
+            return $this->rules?->check($calculado) ?? [];
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**

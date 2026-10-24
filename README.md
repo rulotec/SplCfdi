@@ -76,10 +76,14 @@ perder precisión.
 |---|---|
 | `violations` | `Violation[]`: `code` estable (p. ej. `tasa-o-cuota-invalida`), `message` para el usuario y `campo` (`Concepto[2].Traslado[1].TasaOCuota`) |
 | `calculado` | Importes, impuestos por concepto y resumen; `null` solo si hay errores de formato |
-| `xml` | El XML sin sellar; solo desde `generate()` y sin violaciones |
+| `xml` | El XML sin sellar; desde `generate()` solo sin violaciones, desde `draft()` también con ellas |
 
 `validate()` hace lo mismo que `generate()` pero nunca devuelve XML: sirve para revisar un formulario
 mientras se captura.
+
+`draft()` devuelve las mismas violaciones y, aun con ellas, el XML tal como saldría, para mostrarlo con
+los errores señalados. Un borrador con violaciones nunca debe sellarse. Solo falta el XML si los datos
+no permiten ni calcular (p. ej. una cantidad que no es número).
 
 ### Opciones de `CfdiFactory::create()`
 

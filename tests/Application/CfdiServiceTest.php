@@ -7,7 +7,7 @@ namespace SplCfdi\Tests\Application;
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
-use SplCfdi\Domain\Models\{Concepto, ImpuestoTrasladado, TipoFactor};
+use SplCfdi\Domain\Models\{Concepto, ImpuestoTrasladado, Receptor, TipoFactor};
 use SplCfdi\Tests\Support\AssertsCfdiSchema;
 use SplCfdi\Tests\Support\Fixtures;
 
@@ -31,6 +31,54 @@ final class CfdiServiceTest extends TestCase
             Fixtures::comprobante([Fixtures::concepto('1000.00'), Fixtures::concepto('0.05')])
         );
 
+        $this->assertCumpleConElEsquema((string) $cfdi->xml);
+    }
+
+    public function testElBorradorDeUnCfdiValidoEsIgualAlGenerado(): void
+    {
+        $service = CfdiFactory::create(null, Fixtures::clock());
+        $comprobante = Fixtures::comprobante([Fixtures::concepto('1000.00')]);
+
+        $this->assertSame($service->generate($comprobante)->xml, $service->draft($comprobante)->xml);
+        $this->assertTrue($service->draft($comprobante)->isValid());
+    }
+
+    public function testElBorradorTraeXmlAunqueHayaViolacionesDeFormatoYDeReglas(): void
+    {
+        $receptor = new Receptor('RFC-INVALIDO', 'CLIENTE', '62000', '601', 'G03');
+        $comprobante = Fixtures::comprobanteCon([Fixtures::concepto('1000.00')], $receptor, null, formaPago: '01', metodoPago: 'PUE');
+
+        $cfdi = CfdiFactory::create(null, Fixtures::clock())->draft($comprobante);
+
+        $this->assertFalse($cfdi->isValid());
+        $this->assertContains('Receptor.Rfc', array_map(fn ($v) => $v->campo, $cfdi->violations));
+        $this->assertStringContainsString('Rfc="RFC-INVALIDO"', (string) $cfdi->xml);
+        $this->assertSame('1160.00', $cfdi->calculado?->importes->total);
+    }
+
+    public function testSiNoSePuedeCalcularElBorradorNoTraeXml(): void
+    {
+        $base = Fixtures::concepto('1000.00');
+        $sinCantidad = new Concepto($base->claveProdServ, 'dos', $base->claveUnidad, $base->unidad, $base->descripcion,
+            $base->valorUnitario, $base->objetoImp, $base->impuestosTrasladados);
+
+        $cfdi = CfdiFactory::create(null, Fixtures::clock())->draft(Fixtures::comprobante([$sinCantidad]));
+
+        $this->assertFalse($cfdi->isValid());
+        $this->assertNull($cfdi->xml);
+        $this->assertNull($cfdi->calculado);
+    }
+
+    public function testUnidadEsOpcional(): void
+    {
+        $base = Fixtures::concepto('1000.00');
+        $sinUnidad = new Concepto($base->claveProdServ, $base->cantidad, $base->claveUnidad, null, $base->descripcion,
+            $base->valorUnitario, $base->objetoImp, $base->impuestosTrasladados);
+
+        $cfdi = CfdiFactory::create(null, Fixtures::clock())->generate(Fixtures::comprobante([$sinUnidad]));
+
+        $this->assertTrue($cfdi->isValid());
+        $this->assertStringNotContainsString(' Unidad=', (string) $cfdi->xml);
         $this->assertCumpleConElEsquema((string) $cfdi->xml);
     }
 
