@@ -17,11 +17,11 @@ Fuentes oficiales:
 | Lista de catálogos embebidos | `src/Domain/Catalogs/CatalogName.php` | — | Sí: una constante por catálogo |
 | Claves de cada catálogo | `resources/catalogs/c_*.php` | `catCFDI.xsd` | **No**: `bin/cfdi-catalogs write` |
 | Columnas que el XSD no trae | `resources/catalogs/xls/c_*.php` | `catCFDI.xls` | **No**: `bin/cfdi-catalogs xls` |
-| Copia de los XSD para validar | `resources/xsd/validacion/*.xsd` | `resources/xsd` | **No**: `bin/cfdi-catalogs write` |
+| Copia de los XSD para validar | `resources/xsd/validacion/*.xsd` | `resources/xsd/sat` | **No**: `bin/cfdi-catalogs write` |
 | Claves que el XSD aún lista pero el SAT ya no acepta | `resources/catalogs/_excluded.php` | `catCFDI.xls` (fechas de vigencia) | Sí |
 | Claves con nombre que usan las reglas | `src/Domain/Catalogs/Claves/*.php` | — | Sí |
 | Matriz UsoCFDI × persona × régimen | `src/Domain/Catalogs/UsoCfdiMatrix.php` | `catCFDI.xls` | Sí |
-| XSD de referencia | `resources/xsd/{catCFDI,cfdv40,tdCFDI}.xsd` | Portal del SAT | Se reemplazan al actualizar |
+| XSD de referencia | `resources/xsd/sat/{catCFDI,cfdv40,tdCFDI}.xsd` | Portal del SAT | Se reemplazan al actualizar |
 
 ## Catálogos embebidos (claves, de `catCFDI.xsd`)
 
@@ -68,7 +68,7 @@ El XSD solo trae las claves. Lo demás se importa del XLS a `resources/catalogs/
 
 ## Copia de validación de los XSD
 
-`LibXmlSchemaValidator` no usa `resources/xsd` sino `resources/xsd/validacion`, que genera `write`:
+`LibXmlSchemaValidator` no usa `resources/xsd/sat` sino `resources/xsd/validacion`, que genera `write`:
 los mismos archivos, salvo que en `catCFDI.xsd` los tipos de `ValidationSchemas::PATTERNS`
 (c_ClaveProdServ, c_ClaveUnidad, c_CodigoPostal) se reducen a un patrón. Con las enumeraciones
 completas libxml tarda ~0.5 s en cargar el esquema y unos 40 s en reportar una clave inexistente
@@ -119,7 +119,7 @@ en cada actualización.
 php bin/cfdi-catalogs check --fetch
 
 # 2. Si hay diferencias, reemplaza el XSD de referencia y regenera claves y copia de validación:
-curl -o resources/xsd/catCFDI.xsd http://www.sat.gob.mx/sitio_internet/cfd/catalogos/catCFDI.xsd
+curl -o resources/xsd/sat/catCFDI.xsd http://www.sat.gob.mx/sitio_internet/cfd/catalogos/catCFDI.xsd
 php bin/cfdi-catalogs write
 
 # 3. Descarga el catCFDI.xls vigente (enlace en la página del Anexo 20) e importa sus columnas
@@ -137,9 +137,9 @@ composer check
 ```
 
 `check` termina con código 1 si hay diferencias; `ShippedCatalogsTest` y `ValidationSchemasTest`
-fallan si `resources/` se desfasa de los XSD de `resources/xsd`.
+fallan si `resources/` se desfasa de los XSD de `resources/xsd/sat`.
 
-Si el SAT cambia `cfdv40.xsd` o `tdCFDI.xsd`, reemplázalos en `resources/xsd` y ejecuta `write`
+Si el SAT cambia `cfdv40.xsd` o `tdCFDI.xsd`, reemplázalos en `resources/xsd/sat` y ejecuta `write`
 para regenerar la copia de validación.
 
 ## Agregar un catálogo embebido

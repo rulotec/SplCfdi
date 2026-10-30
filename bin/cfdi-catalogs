@@ -25,7 +25,7 @@ Uso: php bin/cfdi-catalogs <check|write> [--xsd=ruta] [--dir=ruta] [--fetch]
   check    compara los catálogos embebidos con catCFDI.xsd (código 1 si hay diferencias)
   write    regenera resources/catalogs/*.php y resources/xsd/validacion desde catCFDI.xsd
   xls      regenera resources/catalogs/xls/*.php desde catCFDI.xls (requiere LibreOffice con --xls)
-  --xsd    XSD a usar (por defecto resources/xsd/catCFDI.xsd)
+  --xsd    XSD a usar (por defecto resources/xsd/sat/catCFDI.xsd)
   --dir    carpeta de catálogos embebidos (por defecto resources/catalogs)
   --fetch  descarga el XSD vigente del SAT a un archivo temporal y usa ese
 
@@ -48,7 +48,7 @@ if (!in_array($command, ['check', 'write', 'xls'], true)) {
 }
 
 $dir = is_string($options['dir'] ?? null) ? $options['dir'] : EmbeddedCatalogs::defaultDir();
-$xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : Resources::path('xsd/catCFDI.xsd');
+$xsdPath = is_string($options['xsd'] ?? null) ? $options['xsd'] : Resources::path(ValidationSchemas::SOURCE_DIR . '/catCFDI.xsd');
 
 if ($command === 'xls') {
     exit(importXls($options, $dir));
@@ -122,7 +122,7 @@ $issues = [...$issues, ...$clavesIssues, ...$xlsIssues];
 
 if ($command === 'check') {
     try {
-        $stale = ValidationSchemas::staleFiles(Resources::path('xsd'), Resources::path(ValidationSchemas::DIR));
+        $stale = ValidationSchemas::staleFiles(Resources::path(ValidationSchemas::SOURCE_DIR), Resources::path(ValidationSchemas::DIR));
     } catch (RuntimeException $e) {
         fail($e->getMessage());
     }
@@ -152,7 +152,7 @@ foreach ($xsd as $name => $values) {
 echo count($xsd) . " catálogos escritos en $dir\n";
 
 try {
-    ValidationSchemas::write(Resources::path('xsd'), Resources::path(ValidationSchemas::DIR));
+    ValidationSchemas::write(Resources::path(ValidationSchemas::SOURCE_DIR), Resources::path(ValidationSchemas::DIR));
 } catch (RuntimeException $e) {
     fail($e->getMessage());
 }

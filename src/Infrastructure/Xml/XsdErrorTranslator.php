@@ -13,11 +13,29 @@ use SplCfdi\Domain\Rules\Violation;
  * Traduce los errores de libxml al validar contra el XSD a Violations en español, con la misma ruta
  * (`campo`) que usan las reglas: "Concepto[2].Traslado[1].TasaOCuota", "Emisor.Rfc", "Moneda".
  *
- * Supone un documento con un elemento por línea (LibXmlSchemaValidator lo reformatea): así la línea
- * del error identifica el elemento.
+ * Supone un documento con un elemento por línea (XsdValidation lo reformatea): así la línea del error
+ * identifica el elemento.
+ *
+ * También traduce los de un fragmento validado aparte (una addenda): fragmento() antepone su nombre al
+ * lugar del mensaje y su ruta a `campo` ("Addenda.Partes.Parte.ordenCompra").
  */
 final class XsdErrorTranslator
 {
+    /**
+     * @param string      $raiz   cómo se nombra en el mensaje el nodo raíz del documento validado
+     * @param string|null $prefijo ruta de `campo` del nodo raíz; null en el CFDI (la raíz no aparece en la ruta)
+     */
+    public function __construct(
+        private readonly string $raiz = 'Comprobante',
+        private readonly ?string $prefijo = null,
+    ) {}
+
+    /** Para un fragmento validado aparte, p. ej. ('Addenda Volkswagen PSV', 'Addenda'). */
+    public static function fragmento(string $nombre, string $campo): self
+    {
+        return new self($nombre, $campo);
+    }
+
     /** Atributo => catálogo, para los mensajes de enumeración (libxml no dice qué tipo falló). */
     private const CATALOGOS = [
         'ClaveProdServ' => 'c_ClaveProdServ',
@@ -84,22 +102,22 @@ final class XsdErrorTranslator
     private function translateOne(string $message, ?DOMElement $element): Violation
     {
         $ruta = $element === null ? [] : $this->ruta($element);
-        $lugar = $element === null ? 'Comprobante' : $this->lugar($element);
-        $campoElemento = $ruta === [] ? null : implode('.', $ruta);
+        $lugar = $element === null ? $this->raiz : $this->lugar($element);
+        $campoElemento = $this->campo($ruta);
 
         // Element '{ns}Concepto', attribute 'Cantidad': [facet '…'] …
         if (preg_match("/^Element '[^']*', attribute '([^']+)': (.*)$/s", $message, $m) === 1) {
-            return $this->attributeError($m[1], $m[2], $lugar, implode('.', [...$ruta, $m[1]]));
+            return $this->attributeError($m[1], $m[2], $lugar, $this->campo([...$ruta, $m[1]]));
         }
 
         // Element '{ns}Receptor': …
         $detalle = (string) preg_replace("/^Element '[^']*': /", '', $message);
 
         if (preg_match("/^The attribute '([^']+)' is required but missing/", $detalle, $m) === 1) {
-            return new Violation('xsd-requerido', "$lugar: falta el atributo obligatorio {$m[1]}.", implode('.', [...$ruta, $m[1]]));
+            return new Violation('xsd-requerido', "$lugar: falta el atributo obligatorio {$m[1]}.", $this->campo([...$ruta, $m[1]]));
         }
         if (preg_match("/^The attribute '([^']+)' is not allowed/", $detalle, $m) === 1) {
-            return new Violation('xsd-no-permitido', "$lugar: el atributo {$m[1]} no está permitido.", implode('.', [...$ruta, $m[1]]));
+            return new Violation('xsd-no-permitido', "$lugar: el atributo {$m[1]} no está permitido.", $this->campo([...$ruta, $m[1]]));
         }
         if (str_starts_with($detalle, 'This element is not expected')) {
             return new Violation('xsd-estructura', sprintf(
@@ -121,7 +139,7 @@ final class XsdErrorTranslator
         return new Violation('xsd', sprintf('%s: %s', $lugar, $this->sinNamespaces($detalle)), $campoElemento);
     }
 
-    private function attributeError(string $atributo, string $detalle, string $lugar, string $campo): Violation
+    private function attributeError(string $atributo, string $detalle, string $lugar, ?string $campo): Violation
     {
         $valor = preg_match("/The value '(.*?)' /s", $detalle, $v) === 1 ? $v[1] : null;
         if ($valor === null && preg_match("/^'(.*?)' is not a valid value/s", $detalle, $v) === 1) {
@@ -221,7 +239,21 @@ final class XsdErrorTranslator
             $partes[] = $parte;
         }
 
-        return $partes === [] ? 'Comprobante' : implode(', ', array_reverse($partes));
+        if ($partes === []) {
+            return $this->raiz;
+        }
+
+        return ($this->prefijo === null ? '' : "{$this->raiz}, ") . implode(', ', array_reverse($partes));
+    }
+
+    /** @param string[] $ruta */
+    private function campo(array $ruta): ?string
+    {
+        if ($this->prefijo !== null) {
+            array_unshift($ruta, $this->prefijo);
+        }
+
+        return $ruta === [] ? null : implode('.', $ruta);
     }
 
     /** Traslados/Retenciones del concepto o del resumen, y Conceptos; el Impuestos del concepto también. */

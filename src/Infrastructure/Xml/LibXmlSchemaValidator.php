@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SplCfdi\Infrastructure\Xml;
 
 use DOMDocument;
+use DOMElement;
 use SplCfdi\Domain\Contracts\XmlSchemaValidator;
 use SplCfdi\Domain\Rules\Violation;
 
@@ -15,6 +16,9 @@ use SplCfdi\Domain\Rules\Violation;
  * Mientras no haya sellado, a un XML sin Sello/NoCertificado/Certificado se le ponen valores ficticios:
  * el XSD los exige, pero no dependen de los datos del host. El TimbreFiscalDigital no hace falta: va en
  * Complemento, que es opcional, y lo agrega el PAC.
+ *
+ * La Addenda se quita antes de validar: cfdv40.xsd la declara como xs:any estricto, que exige conocer el
+ * esquema de su contenido. Cada addenda se valida aparte contra el suyo (AddendaSchemaValidator).
  */
 final class LibXmlSchemaValidator implements XmlSchemaValidator
 {
@@ -24,6 +28,8 @@ final class LibXmlSchemaValidator implements XmlSchemaValidator
         'NoCertificado' => '00000000000000000000',
         'Certificado' => 'CERTIFICADO-FICTICIO',
     ];
+
+    public const NS_CFDI = 'http://www.sat.gob.mx/cfd/4';
 
     private readonly string $xsdPath;
 
@@ -45,52 +51,62 @@ final class LibXmlSchemaValidator implements XmlSchemaValidator
             return [new Violation('xml-vacio', 'El XML está vacío.')];
         }
 
-        $previous = libxml_use_internal_errors(true);
-        libxml_clear_errors();
-
-        try {
-            $dom = $this->cargar($xml);
-            if ($dom === null) {
-                $error = libxml_get_errors()[0] ?? null;
-
-                return [new Violation('xml-mal-formado', $error === null
-                    ? 'El XML no está bien formado.'
-                    : sprintf('El XML no está bien formado (línea %d): %s', $error->line, trim($error->message)))];
-            }
-
-            libxml_clear_errors();
-            if ($dom->schemaValidate($this->xsdPath)) {
-                return [];
-            }
-
-            return $this->translator->translate(libxml_get_errors(), $dom);
-        } finally {
-            libxml_clear_errors();
-            libxml_use_internal_errors($previous);
-        }
-    }
-
-    /** Un elemento por línea, para que la línea de cada error identifique su elemento. */
-    private function cargar(string $xml): ?DOMDocument
-    {
-        $original = new DOMDocument();
-        $original->preserveWhiteSpace = false;
-        if (!$original->loadXML($xml)) {
-            return null;
+        $dom = self::cargar($xml);
+        if (is_string($dom)) {
+            return [new Violation('xml-mal-formado', $dom)];
         }
 
-        $root = $original->documentElement;
+        $root = $dom->documentElement;
         if ($root !== null) {
             foreach (self::SELLO_FICTICIO as $atributo => $valor) {
                 if (!$root->hasAttribute($atributo)) {
                     $root->setAttribute($atributo, $valor);
                 }
             }
+            foreach (self::addendas($dom) as $addenda) {
+                $root->removeChild($addenda);
+            }
         }
 
-        $original->formatOutput = true;
-        $dom = new DOMDocument();
+        return XsdValidation::validate($dom, $this->xsdPath, $this->translator);
+    }
 
-        return $dom->loadXML((string) $original->saveXML()) ? $dom : null;
+    /**
+     * Los nodos cfdi:Addenda del comprobante.
+     *
+     * @return DOMElement[]
+     */
+    public static function addendas(DOMDocument $dom): array
+    {
+        $addendas = [];
+        foreach ($dom->documentElement->childNodes ?? [] as $nodo) {
+            if ($nodo instanceof DOMElement && $nodo->namespaceURI === self::NS_CFDI && $nodo->localName === 'Addenda') {
+                $addendas[] = $nodo;
+            }
+        }
+
+        return $addendas;
+    }
+
+    /** @return DOMDocument|string el documento, o el mensaje de por qué no está bien formado */
+    public static function cargar(string $xml): DOMDocument|string
+    {
+        $previous = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+
+        try {
+            $dom = new DOMDocument();
+            if ($dom->loadXML($xml)) {
+                return $dom;
+            }
+            $error = libxml_get_errors()[0] ?? null;
+
+            return $error === null
+                ? 'El XML no está bien formado.'
+                : sprintf('El XML no está bien formado (línea %d): %s', $error->line, trim($error->message));
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
     }
 }

@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:PSV="http://www.vwnovedades.com/volkswagen/kanseilab/shcp/2009/Addenda/PSV" targetNamespace="http://www.vwnovedades.com/volkswagen/kanseilab/shcp/2009/Addenda/PSV" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+<xs:element name="Factura">
+  <xs:annotation>
+    <xs:documentation>Addenda VWM para el manejo de informacion adicional de los CFD</xs:documentation>
+  </xs:annotation>
+  <xs:complexType>
+    <xs:sequence>
+	  <xs:element name="Cancelaciones" minOccurs="0" maxOccurs="1">
+	    <xs:annotation><xs:documentation>Nodo opcional para el manejo de refacturaciones</xs:documentation></xs:annotation><xs:complexType>
+		  <xs:attribute name="cancelaSustituye" use="required"><xs:annotation><xs:documentation>Numero de factura que cancela y sustituye</xs:documentation></xs:annotation><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="16"/><xs:whiteSpace value="collapse"/></xs:restriction></xs:simpleType></xs:attribute>
+		</xs:complexType>
+	  </xs:element>
+	  <xs:element name="Moneda" minOccurs="1" maxOccurs="1">
+	    <xs:complexType>
+		  <xs:attribute name="tipoMoneda" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="3"/><xs:maxLength value="5"/></xs:restriction></xs:simpleType></xs:attribute>
+		  <xs:attribute name="tipoCambio"><xs:simpleType><xs:restriction base="xs:decimal"><xs:fractionDigits value="5"/><xs:totalDigits value="14"/></xs:restriction></xs:simpleType></xs:attribute>
+		<xs:attribute name="codigoImpuesto" use="required"><xs:annotation><xs:documentation>Codigo de impuesto, asignado por VW en orden de compra</xs:documentation></xs:annotation><xs:simpleType><xs:restriction base="xs:string"><xs:length value="2"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType>
+	  </xs:element>
+	  <xs:element name="Proveedor" minOccurs="1" maxOccurs="1"><xs:complexType><xs:attribute name="codigo"><xs:simpleType><xs:restriction base="xs:string"><xs:length value="10"/><xs:pattern value="[0-9]{10}"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="nombre"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="0"/><xs:maxLength value="35"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="correoContacto" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="80"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element>
+	  <xs:element name="Origen" minOccurs="0" maxOccurs="1" type="PSV:Locacion"/>
+	  <xs:element name="Destino" minOccurs="0" maxOccurs="1"><xs:complexType><xs:attribute name="codigo" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:length value="4"/><xs:pattern value="[0-9]{4}"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="naveReciboMaterial"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="7"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element>
+	  
+	  
+	  <xs:element name="Medidas" minOccurs="0" maxOccurs="1">
+	  <xs:complexType>
+	  <xs:attribute name="pesoBruto" type="PSV:t_medidas"/>
+	  <xs:attribute name="pesoNeto" type="PSV:t_medidas"/>
+	  <xs:attribute name="volumen" type="PSV:t_medidas"/>
+	  <xs:attribute name="numeroPiezas" type="PSV:t_medidas"/>
+	  <xs:attribute name="descripcion">
+	  <xs:simpleType>
+	  <xs:restriction base="xs:string">
+	  <xs:minLength value="1"/>
+	  <xs:maxLength value="60"/>
+	  </xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element>
+	  <xs:element name="Referencias" minOccurs="0" maxOccurs="1"><xs:complexType><xs:attribute name="referenciaProveedor"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="16"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="remision" use="optional"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="16"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="numeroASN"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="20"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="unidadNegocios"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="0"/><xs:maxLength value="80"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element>
+	  <xs:element name="Solicitante" minOccurs="1" maxOccurs="1"><xs:complexType><xs:attribute name="nombre"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="0"/><xs:maxLength value="80"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="correo"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="80"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element><xs:element name="Nota" type="PSV:Notas" minOccurs="0" maxOccurs="unbounded"/>
+	  <xs:element name="Archivo" minOccurs="0" maxOccurs="3"><xs:complexType><xs:attribute name="datos" use="required"><xs:simpleType><xs:restriction base="xs:string"/></xs:simpleType></xs:attribute><xs:attribute name="tipo" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="XLS"/><xs:enumeration value="PDF"/><xs:enumeration value="ZIP"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element><xs:element name="Partes" minOccurs="1" maxOccurs="1"><xs:complexType><xs:sequence>
+	    <xs:element name="Parte" minOccurs="1" maxOccurs="unbounded"><xs:complexType>
+		<xs:sequence>
+		  <xs:element name="Referencias" minOccurs="1" maxOccurs="1">
+		  <xs:complexType>
+		    <xs:attribute name="ordenCompra" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="10" fixed="false"/><xs:maxLength value="12" fixed="false"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element><xs:element name="Nota" type="PSV:Notas" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+		    <xs:attribute name="posicion" use="required"><xs:simpleType><xs:restriction base="xs:integer"/></xs:simpleType></xs:attribute>
+		    <xs:attribute name="numeroMaterial" use="optional"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="18"/></xs:restriction></xs:simpleType></xs:attribute>
+		    <xs:attribute name="descripcionMaterial" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="40"/></xs:restriction></xs:simpleType></xs:attribute>
+		    <xs:attribute name="cantidadMaterial" use="required"><xs:simpleType><xs:restriction base="xs:decimal"><xs:totalDigits value="17"/><xs:fractionDigits value="4"/></xs:restriction></xs:simpleType></xs:attribute>
+		    <xs:attribute name="unidadMedida" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="3"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="precioUnitario" use="required"><xs:simpleType><xs:restriction base="xs:decimal"><xs:totalDigits value="20"/><xs:fractionDigits value="5"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="montoLinea" use="required"><xs:simpleType><xs:restriction base="xs:decimal"><xs:totalDigits value="20"/><xs:fractionDigits value="2"/></xs:restriction></xs:simpleType></xs:attribute>
+		    <xs:attribute name="pesoBruto">
+		    <xs:simpleType>
+		      <xs:restriction base="xs:decimal">
+		        <xs:totalDigits value="10"/>
+		        <xs:fractionDigits value="2"/>
+		      </xs:restriction>
+		    </xs:simpleType>
+		    </xs:attribute>
+		  <xs:attribute name="pesoNeto"><xs:simpleType><xs:restriction base="xs:decimal"><xs:totalDigits value="10"/><xs:fractionDigits value="2"/></xs:restriction></xs:simpleType></xs:attribute>
+		  <xs:attribute name="codigoImpuesto" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:length value="2"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element></xs:sequence></xs:complexType></xs:element></xs:sequence>
+  <xs:attribute name="version" use="required"><xs:annotation><xs:documentation>Indica la version del esquema utilizado = 1.0</xs:documentation></xs:annotation><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="1.0"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="tipoDocumentoFiscal" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="FA"><xs:annotation><xs:documentation>Factura</xs:documentation></xs:annotation></xs:enumeration><xs:enumeration value="CA"><xs:annotation><xs:documentation>Nota de Cargo</xs:documentation></xs:annotation></xs:enumeration><xs:enumeration value="CR"><xs:annotation><xs:documentation>Nota de Credito</xs:documentation></xs:annotation></xs:enumeration></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="tipoDocumentoVWM" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="PSV"><xs:annotation><xs:documentation>Servicios</xs:documentation></xs:annotation></xs:enumeration></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="division" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="VW"><xs:annotation><xs:documentation>VolksWagen Mexico</xs:documentation></xs:annotation></xs:enumeration><xs:enumeration value="INFODE"><xs:annotation><xs:documentation>INFODE</xs:documentation></xs:annotation></xs:enumeration><xs:enumeration value="VWSP"><xs:annotation><xs:documentation>VolksWagen Servicios Profesionales</xs:documentation></xs:annotation></xs:enumeration></xs:restriction></xs:simpleType></xs:attribute></xs:complexType>
+</xs:element>
+<xs:simpleType name="Notas"><xs:annotation><xs:documentation>Tipo de dato para notas</xs:documentation></xs:annotation><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="254"/></xs:restriction></xs:simpleType><xs:complexType name="Locacion"><xs:attribute name="codigo" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:length value="10"/><xs:pattern value="[0-9]{10}"/></xs:restriction></xs:simpleType></xs:attribute><xs:attribute name="nombre"><xs:simpleType><xs:restriction base="xs:string"><xs:minLength value="0"/><xs:maxLength value="35"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType><xs:simpleType name="t_medidas"><xs:restriction base="xs:decimal"><xs:totalDigits value="10"/><xs:fractionDigits value="2"/></xs:restriction></xs:simpleType></xs:schema>

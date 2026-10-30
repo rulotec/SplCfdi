@@ -12,6 +12,7 @@ use SplCfdi\Infrastructure\Catalogs\CatalogXsdReader;
 use SplCfdi\Infrastructure\Catalogs\EmbeddedCatalogs;
 use SplCfdi\Infrastructure\Catalogs\XlsCatalogs;
 use SplCfdi\Infrastructure\Resources;
+use SplCfdi\Infrastructure\Xml\ValidationSchemas;
 
 /**
  * Falla cuando resources/catalogs se desfasa del catCFDI.xsd que viaja en resources/xsd.
@@ -21,9 +22,9 @@ final class ShippedCatalogsTest extends TestCase
 {
     public function testLosCatalogosEmbebidosCoincidenConElXsd(): void
     {
-        $xsdPath = Resources::path('xsd/catCFDI.xsd');
+        $xsdPath = Resources::path(ValidationSchemas::SOURCE_DIR . '/catCFDI.xsd');
         if (!is_file($xsdPath)) {
-            $this->markTestSkipped('No existe resources/xsd/catCFDI.xsd.');
+            $this->markTestSkipped('No existe resources/xsd/sat/catCFDI.xsd.');
         }
 
         $xsd = CatalogExclusions::load(EmbeddedCatalogs::defaultDir())

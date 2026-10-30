@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SplCfdi\Addendas;
+
+use DOMDocument;
+use DOMElement;
+use SplCfdi\Domain\Addendas\{Addenda, CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
+use SplCfdi\Domain\Contracts\DecimalMath;
+use SplCfdi\Domain\Models\{ComprobanteCalculado, Concepto};
+use SplCfdi\Domain\Rules\Violation;
+use SplCfdi\Infrastructure\Resources;
+
+/**
+ * Base de las addendas incluidas: el XSD en resources/addendas/<clave>.xsd, el prefijo igual a la clave y
+ * utilerías para armar nodos. Una addenda puede implementar Addenda directamente si no le sirve.
+ */
+abstract class AddendaBase implements Addenda
+{
+    /** Nombre del campo opcional con que el usuario fija el tipo de documento en vez de derivarlo. */
+    protected const TIPO_DOCUMENTO = 'tipoDocumentoFiscal';
+
+    public function __construct(protected readonly DecimalMath $math) {}
+
+    public function esquema(): ?string
+    {
+        return Resources::path('addendas/' . $this->clave() . '.xsd');
+    }
+
+    public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
+    {
+        return [];
+    }
+
+    protected function prefijo(): string
+    {
+        return $this->clave();
+    }
+
+    /**
+     * @param array<string, ?string> $atributos los null se omiten
+     * @param array<?DOMElement>     $hijos     los null se omiten
+     */
+    protected function nodo(DOMDocument $dom, string $nombre, array $atributos = [], array $hijos = []): DOMElement
+    {
+        $nodo = $dom->createElementNS($this->namespace(), $this->prefijo() . ':' . $nombre);
+        foreach ($atributos as $atributo => $valor) {
+            if ($valor !== null) {
+                $nodo->setAttribute($atributo, $valor);
+            }
+        }
+        foreach ($hijos as $hijo) {
+            if ($hijo !== null) {
+                $nodo->appendChild($hijo);
+            }
+        }
+
+        return $nodo;
+    }
+
+    /**
+     * Un nodo de texto por cada trozo de $longitud caracteres (las notas largas se reparten en varios nodos).
+     *
+     * @return DOMElement[]
+     */
+    protected function notas(DOMDocument $dom, string $nombre, ?string $texto, int $longitud): array
+    {
+        if ($texto === null) {
+            return [];
+        }
+
+        return array_map(function (string $trozo) use ($dom, $nombre) {
+            $nodo = $this->nodo($dom, $nombre);
+            $nodo->appendChild($dom->createTextNode($trozo));
+
+            return $nodo;
+        }, mb_str_split($texto, max(1, $longitud)));
+    }
+
+    protected function decimales(string $valor, int $decimales): string
+    {
+        return $this->math->round($valor, $decimales);
+    }
+
+    protected function recortar(?string $texto, int $longitud): ?string
+    {
+        return $texto === null ? null : mb_substr(trim($texto), 0, $longitud);
+    }
+
+    /** La Unidad del concepto si cabe en $longitud caracteres; si no (o si no tiene), su ClaveUnidad. */
+    protected function unidad(Concepto $concepto, ?int $longitud = null): string
+    {
+        $unidad = $concepto->unidad;
+
+        return $unidad !== null && trim($unidad) !== '' && ($longitud === null || mb_strlen($unidad) <= $longitud)
+            ? $unidad
+            : $concepto->claveUnidad;
+    }
+
+    /**
+     * El campo opcional que fija el tipo de documento del cliente.
+     *
+     * @param array<string, string> $opciones valor => descripción
+     */
+    protected function campoTipoDocumento(array $opciones, string $porDefecto): CampoAddenda
+    {
+        return new CampoAddenda(
+            self::TIPO_DOCUMENTO, 'Tipo de documento', NivelCampo::Comprobante, TipoCampo::Opcion,
+            opciones: $opciones, porDefecto: $porDefecto,
+        );
+    }
+
+    /**
+     * El capturado o, si no, el que corresponde al TipoDeComprobante.
+     *
+     * @param array<string, string> $porTipoDeComprobante TipoDeComprobante => tipo de documento del cliente
+     */
+    protected function tipoDocumento(ComprobanteCalculado $calculado, DatosAddenda $datos, array $porTipoDeComprobante): ?string
+    {
+        return $datos->valor(self::TIPO_DOCUMENTO) ?? $porTipoDeComprobante[$calculado->comprobante->tipoDeComprobante] ?? null;
+    }
+
+    /**
+     * @param array<string, string> $porTipoDeComprobante
+     *
+     * @return Violation[]
+     */
+    protected function reglaTipoDocumento(ComprobanteCalculado $calculado, DatosAddenda $datos, array $porTipoDeComprobante): array
+    {
+        if ($this->tipoDocumento($calculado, $datos, $porTipoDeComprobante) !== null) {
+            return [];
+        }
+
+        return [new Violation('addenda-tipo-documento', sprintf(
+            'Addenda %s: no hay un tipo de documento para el TipoDeComprobante "%s"; indica el tipo de documento.',
+            $this->nombre(),
+            $calculado->comprobante->tipoDeComprobante,
+        ), 'Addenda.' . self::TIPO_DOCUMENTO)];
+    }
+}

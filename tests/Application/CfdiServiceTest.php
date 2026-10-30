@@ -6,9 +6,11 @@ namespace SplCfdi\Tests\Application;
 
 use PHPUnit\Framework\TestCase;
 use SplCfdi\CfdiFactory;
+use SplCfdi\Domain\Addendas\DatosAddenda;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
-use SplCfdi\Domain\Models\{Concepto, ImpuestoTrasladado, Receptor, TipoFactor};
+use SplCfdi\Domain\Models\{Comprobante, Concepto, ImpuestoTrasladado, Receptor, TipoFactor};
 use SplCfdi\Tests\Support\AssertsCfdiSchema;
+use SplCfdi\Tests\Support\EjemplosAddenda;
 use SplCfdi\Tests\Support\Fixtures;
 
 final class CfdiServiceTest extends TestCase
@@ -188,5 +190,36 @@ final class CfdiServiceTest extends TestCase
             valorUnitario: '100.00', objetoImp: '02',
             impuestosTrasladados: [new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.160000')],
         );
+    }
+
+    public function testConAddendaIncompletaNoGeneraXmlPeroElBorradorSiLaMuestra(): void
+    {
+        $c = EjemplosAddenda::volkswagen();
+        $datos = (array) $c->addenda?->valores;
+        unset($datos['codigoProveedor']);
+        $incompleto = new Comprobante(
+            $c->version, $c->fecha, $c->moneda, $c->tipoDeComprobante, $c->exportacion, $c->lugarExpedicion,
+            $c->emisor, $c->receptor, $c->conceptos, folio: $c->folio, metodoPago: $c->metodoPago,
+            formaPago: $c->formaPago, tipoCambio: $c->tipoCambio, addenda: new DatosAddenda('PSV', $datos, [['posicion' => '1']]),
+        );
+        $service = CfdiFactory::create(null, EjemplosAddenda::clock($c));
+
+        $generado = $service->generate($incompleto);
+        $borrador = $service->draft($incompleto);
+
+        $this->assertNull($generado->xml);
+        $this->assertContains('Addenda.codigoProveedor', array_map(fn ($v) => $v->campo, $generado->violations));
+        $this->assertEquals($generado->violations, $borrador->violations);
+        $this->assertStringContainsString('<PSV:Factura', (string) $borrador->xml);
+    }
+
+    public function testElCfdiConAddendaCumpleConElEsquema(): void
+    {
+        $c = EjemplosAddenda::americanAxle();
+
+        $cfdi = CfdiFactory::create(null, EjemplosAddenda::clock($c))->generate($c);
+
+        $this->assertCumpleConElEsquema((string) $cfdi->xml);
+        $this->assertStringContainsString('<cfdi:Addenda>', (string) $cfdi->xml);
     }
 }

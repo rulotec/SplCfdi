@@ -105,7 +105,13 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
    - Mientras no haya sellado, el validador pone valores ficticios en `Sello`, `NoCertificado` y
      `Certificado`. El `TimbreFiscalDigital` no hace falta: va en `Complemento`, que el XSD trata
      como opcional, y lo agrega el PAC.
+   - La `Addenda` se valida aparte, contra el XSD de cada cliente (ver [`addendas.md`](addendas.md)).
    - `CfdiFactory::create(validarXsd: false)` omite este paso.
+
+### Addendas
+- American Axle (IEX), Stellantis (PPY) y Volkswagen PSV, validadas por campo y contra el XSD de cada
+  cliente; se agregan al generar o a un CFDI ya timbrado. Un host puede registrar las suyas. Ver
+  [`addendas.md`](addendas.md).
 
 ### Catálogos
 - 15 catálogos embebidos generados desde `catCFDI.xsd` (los tres grandes se cargan solo al
@@ -152,4 +158,4 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
   - Nómina 1.2 (tipo N).
   - Carta Porte 3.1 (tipo T e I con traslado de mercancías).
   - Comercio Exterior 2.0.
-- Punto de extensión genérico para complementos y addendas.
+- Punto de extensión genérico para complementos.

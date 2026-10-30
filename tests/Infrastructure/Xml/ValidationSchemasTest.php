@@ -14,14 +14,14 @@ final class ValidationSchemasTest extends TestCase
     {
         $this->assertSame(
             [],
-            ValidationSchemas::staleFiles(Resources::path('xsd'), Resources::path(ValidationSchemas::DIR)),
+            ValidationSchemas::staleFiles(Resources::path(ValidationSchemas::SOURCE_DIR), Resources::path(ValidationSchemas::DIR)),
             'Ejecuta: php bin/cfdi-catalogs write'
         );
     }
 
     public function testReemplazaLosCatalogosGrandesPorSuPatron(): void
     {
-        $catalogo = ValidationSchemas::render(Resources::path('xsd'))['catCFDI.xsd'];
+        $catalogo = ValidationSchemas::render(Resources::path(ValidationSchemas::SOURCE_DIR))['catCFDI.xsd'];
 
         $this->assertStringNotContainsString('<xs:enumeration value="20000"/>', $catalogo);
         foreach (ValidationSchemas::PATTERNS as $nombre => $patron) {
@@ -33,9 +33,9 @@ final class ValidationSchemasTest extends TestCase
 
     public function testCopiaElRestoSinCambios(): void
     {
-        $archivos = ValidationSchemas::render(Resources::path('xsd'));
+        $archivos = ValidationSchemas::render(Resources::path(ValidationSchemas::SOURCE_DIR));
 
-        $this->assertSame(file_get_contents(Resources::path('xsd/cfdv40.xsd')), $archivos['cfdv40.xsd']);
-        $this->assertSame(file_get_contents(Resources::path('xsd/tdCFDI.xsd')), $archivos['tdCFDI.xsd']);
+        $this->assertSame(file_get_contents(Resources::path(ValidationSchemas::SOURCE_DIR . '/cfdv40.xsd')), $archivos['cfdv40.xsd']);
+        $this->assertSame(file_get_contents(Resources::path(ValidationSchemas::SOURCE_DIR . '/tdCFDI.xsd')), $archivos['tdCFDI.xsd']);
     }
 }

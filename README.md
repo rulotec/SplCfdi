@@ -85,6 +85,23 @@ mientras se captura.
 los errores señalados. Un borrador con violaciones nunca debe sellarse. Solo falta el XML si los datos
 no permiten ni calcular (p. ej. una cantidad que no es número).
 
+### Addendas
+
+```php
+use SplCfdi\Domain\Addendas\DatosAddenda;
+
+new Comprobante(
+    // …
+    addenda: new DatosAddenda('PSV', ['division' => 'VW', 'codigoProveedor' => '1234567890', /* … */],
+        conceptos: [0 => ['posicion' => '1', 'ordenCompra' => '9000000001']]),
+);
+```
+
+Cada addenda declara los datos que necesita (`AddendaRegistry::todas()`, `campos()`) y calcula el resto
+del CFDI. Para agregarla a un CFDI ya timbrado: `CfdiFactory::createAddendaService()->add($xml, $comprobante)`.
+Incluidas: American Axle (IEX), Stellantis (PPY) y Volkswagen (PSV). Detalle y cómo agregar una
+nueva: [`docs/addendas.md`](docs/addendas.md).
+
 ### Opciones de `CfdiFactory::create()`
 
 | Parámetro | Para qué |
@@ -93,7 +110,8 @@ no permiten ni calcular (p. ej. una cantidad que no es número).
 | `Clock $clock` | Reloj para la ventana de 72 h de la Fecha (útil en pruebas) |
 | `Catalogs $catalogs` | Catálogos propios en lugar de los embebidos |
 | `TipoCambioFix $tipoCambioFix` | Implementación que consulte el FIX del Banxico: con ella se revisa que el TipoCambio esté dentro del rango de variación de c_Moneda |
-| `bool $validarXsd` | `false` omite la validación contra el XSD |
+| `bool $validarXsd` | `false` omite la validación contra el XSD (del CFDI y de las addendas) |
+| `AddendaRegistry $addendas` | Addendas disponibles; por defecto las incluidas, más las del host con `->con()` |
 
 ## Qué incluye
 
@@ -101,6 +119,7 @@ no permiten ni calcular (p. ej. una cantidad que no es número).
 - Traslados Tasa, Cuota (IEPS por cuota) y Exento; retenciones; IEPS incluido en la base del IVA.
 - Más de 50 validaciones: formato, reglas del SAT (ObjetoImp, c_TasaOCuota, MetodoPago/FormaPago,
   régimen por tipo de persona, RFC genérico, TipoCambio…) y el XSD con mensajes en español.
+- Addendas de clientes (American Axle, Stellantis, Volkswagen) con su XSD, extensibles sin tocar el núcleo.
 - 15 catálogos del SAT embebidos y una herramienta para detectar cuándo se desfasan.
 
 Detalle y pendientes en [`docs/funcionalidades.md`](docs/funcionalidades.md).
@@ -133,7 +152,9 @@ Por separado: `composer analyse`, `composer test`, `composer catalogs`.
 | `Domain/Models` | Datos de entrada (`Comprobante`, `Concepto`…) y resultado del cálculo |
 | `Domain/Rules` | `FormatRuleSet` (antes de calcular) y `RuleSet` (reglas del SAT); una clase por regla |
 | `Domain/Catalogs` | Catálogos y claves con nombre (`Claves\MetodoPago::PPD`…) |
+| `Domain/Addendas` | Contrato `Addenda`, definición de campos, `DatosAddenda` y `AddendaRegistry` |
+| `Addendas` | Una clase por addenda de cliente (su XSD en `resources/addendas`) |
 | `Domain/Services` | `InvoiceCalculator` |
-| `Infrastructure` | bcmath, generador de XML, validación XSD, carga e importación de catálogos |
-| `Application` | `CfdiService` y `CfdiResult` |
+| `Infrastructure` | bcmath, generador de XML, validación XSD, addendas en el XML, carga e importación de catálogos |
+| `Application` | `CfdiService`, `AddendaService` (post-timbrado) y `CfdiResult` |
 | `CfdiFactory` | Punto de entrada: arma todo con los valores por defecto |

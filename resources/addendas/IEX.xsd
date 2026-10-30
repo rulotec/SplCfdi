@@ -1,0 +1,56 @@
+﻿<?xml version="1.0"?>
+<xs:schema xmlns:IEX="https://online.aam.com/Addenda/IEX" targetNamespace="https://online.aam.com/Addenda/IEX" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xs:element name="Factura"><xs:annotation><xs:documentation>Definición de Schema para el envío de información adicional de la factura electrónica para AAM</xs:documentation></xs:annotation>
+		<xs:complexType>
+            <xs:sequence maxOccurs="unbounded">
+				<xs:element name="Cancelaciones" maxOccurs="10" minOccurs="0"><xs:complexType><xs:attribute name="CancelaSustituye" type="xs:string"><xs:annotation><xs:documentation>Contiene el numero de factura que cancela y sustituye</xs:documentation></xs:annotation></xs:attribute></xs:complexType></xs:element>
+				<xs:element name="Moneda" maxOccurs="1" minOccurs="1"><xs:annotation><xs:documentation>Nodo requerido que especifica el tipo de moneda en el cual se esta facturando (US o MX)</xs:documentation></xs:annotation><xs:complexType><xs:attribute name="tipoMoneda" type="xs:string" use="required"><xs:annotation><xs:documentation>Código de tipo de moneda utilizado para la factura (MXN: Pesos; USD: Dolares; EUR: Euros)</xs:documentation></xs:annotation></xs:attribute><xs:attribute name="tipoCambio" type="xs:decimal" use="optional"><xs:annotation><xs:documentation>Monto utilizado como tipo de cambio</xs:documentation></xs:annotation></xs:attribute></xs:complexType></xs:element>
+				<xs:element name="Proveedor" maxOccurs="1" minOccurs="1"><xs:annotation><xs:documentation>Codigo del proveedor</xs:documentation></xs:annotation><xs:complexType><xs:attribute name="Codigo" type="xs:string" use="required"><xs:annotation><xs:documentation>Código de proveedor asignado por AAM</xs:documentation></xs:annotation></xs:attribute></xs:complexType></xs:element>
+				<xs:element name="Nota" type="IEX:notas" maxOccurs="6" minOccurs="0" nillable="false"><xs:annotation><xs:documentation>Nodo opcional que contiene notas o comentarios de la factura</xs:documentation></xs:annotation></xs:element>
+				<xs:element name="Requisitor" maxOccurs="1" minOccurs="1"><xs:annotation><xs:documentation>Datos del requisitor de AAM</xs:documentation></xs:annotation><xs:complexType><xs:attribute name="Nombre" type="xs:string" use="required"><xs:annotation><xs:documentation>Nombre de la persona de AAM que solicita el producto o servicio</xs:documentation></xs:annotation></xs:attribute><xs:attribute name="Correo" type="xs:string" use="required"><xs:annotation><xs:documentation>Nombre de la persona de AAM que solicita el producto o servicio</xs:documentation></xs:annotation></xs:attribute></xs:complexType></xs:element>
+				<xs:element name="Archivo" minOccurs="0" maxOccurs="unbounded"><xs:complexType><xs:attribute name="datos" use="required"><xs:simpleType><xs:restriction base="xs:string"/></xs:simpleType></xs:attribute><xs:attribute name="tipo" use="required"><xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="XLS"/><xs:enumeration value="XLSX"/><xs:enumeration value="DOC"/><xs:enumeration value="DOCX"/><xs:enumeration value="PDF"/><xs:enumeration value="JPEG"/><xs:enumeration value="JPG"/><xs:enumeration value="RAR"/><xs:enumeration value="ZIP"/></xs:restriction></xs:simpleType></xs:attribute></xs:complexType></xs:element>
+				<xs:element name="Conceptos"><xs:annotation><xs:documentation>Nodo opcional que contiene los nodos de cada una de las partes que se facturan</xs:documentation></xs:annotation>
+					<xs:complexType>
+					<xs:sequence>
+						<xs:element name="part" maxOccurs="unbounded" minOccurs="1"><xs:annotation><xs:documentation>Nodo requerido que contiene el detalle de la parte facturada</xs:documentation></xs:annotation>
+						<xs:complexType>
+						<xs:sequence>
+							<xs:element name="references" minOccurs="0"><xs:complexType>
+								<xs:attribute name="ordenCompra" type="xs:string" use="required"><xs:annotation><xs:documentation>Atributo que contiene el numero de Orden de Compra</xs:documentation></xs:annotation></xs:attribute>
+								<xs:attribute name="Requisicion" type="xs:string" use="optional"><xs:annotation><xs:documentation>Atributo que contiene el numero de Requisición</xs:documentation></xs:annotation></xs:attribute>
+								<xs:attribute name="ReferenciaProveedor" type="xs:string" use="optional"><xs:annotation><xs:documentation>Atributo que contiene el numero de producto del proveedor</xs:documentation></xs:annotation></xs:attribute></xs:complexType></xs:element>
+							<xs:element name="nota" minOccurs="0" type="IEX:notas"><xs:annotation><xs:documentation>Nodo que contiene notas referentes a la parte facturada</xs:documentation></xs:annotation></xs:element>
+						</xs:sequence>
+						<xs:attribute name="Linea" type="xs:integer" use="optional"><xs:annotation><xs:documentation>Numero de linea contenido dentro del release</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="numero" type="xs:string" use="optional"><xs:annotation><xs:documentation>Contiene el numero de parte de la orden de compra de AAM</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="cantidad" type="xs:decimal" use="required"><xs:annotation><xs:documentation>Contiene la cantidad de partes facturadas</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="descripcion" type="xs:string" use="required"><xs:annotation><xs:documentation>Contiene la descripción de partes facturadas</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="unidadDeMedida" type="xs:string" use="required"><xs:annotation><xs:documentation>Atributo requerido que contiene la unidad de medida de la parte</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="precioUnitario" type="xs:decimal" use="required"><xs:annotation><xs:documentation>Atributo requerido que contiene el precio unitario de la parte</xs:documentation></xs:annotation></xs:attribute>
+						<xs:attribute name="montoDeLinea" type="xs:decimal" use="required"><xs:annotation><xs:documentation>Atributo requerido que contiene el monto total de la partida facturada</xs:documentation></xs:annotation></xs:attribute>
+					</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				
+			</xs:sequence>
+			<xs:attribute name="tipoDocumento" use="required"><xs:simpleType><xs:restriction base="xs:string"></xs:restriction></xs:simpleType></xs:attribute>
+			<xs:attribute name="TipoDocumentoFiscal" type="xs:string" use="required"><xs:annotation><xs:documentation>INV Factura; CRM Nota de Credito; DRM Nota de cargo; HON Honorarios; ARR Arrendamientos.</xs:documentation></xs:annotation></xs:attribute>
+			<xs:attribute name="OrganizacionOperacional" use="required"><xs:annotation><xs:documentation>Identifica la Organización a la que pertenece en los inventarios de AAM (LDI, LMI, QDI, QMI, GDI, GMI: Viene en la PO)</xs:documentation></xs:annotation><xs:simpleType><xs:restriction base="xs:string"></xs:restriction></xs:simpleType></xs:attribute>
+			<xs:attribute name="version" use="required" fixed="1.1"><xs:annotation><xs:documentation>Atributo requerido que especifica la version del Schema utilizado</xs:documentation></xs:annotation><xs:simpleType><xs:restriction base="xs:string"><xs:whiteSpace fixed="false" value="collapse"/></xs:restriction></xs:simpleType></xs:attribute>
+			<xs:attribute name="Clabe" use="required" type="xs:string"><xs:annotation><xs:documentation>Atributo requerido que contiene el número clabe del banco en el cual se debe de efectuar el pago</xs:documentation></xs:annotation></xs:attribute>
+			<xs:attribute name="NombreBanco" use="required" type="xs:string"><xs:annotation><xs:documentation>Atributo requerido que contiene el nombre del banco en el cual se debe de efectuar el pago</xs:documentation></xs:annotation></xs:attribute>
+		</xs:complexType>
+    </xs:element>
+    <xs:complexType name="Locacion"><xs:annotation><xs:documentation>Definición de tipo para expresar domicilios</xs:documentation></xs:annotation>
+		<xs:attribute name="Nombre" use="required" type="xs:string"><xs:annotation><xs:documentation>Atributo requerido que contiene el nombre del Destinatario o del remitente según sea el caso</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="Calle" use="required" type="xs:string"><xs:annotation><xs:documentation>Atributo requerido que contiene la calle del domicilio</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="Numero" type="xs:string"><xs:annotation><xs:documentation>Atributo opcional que contiene el número del domicilio</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="Delegacion" type="xs:string"><xs:annotation><xs:documentation>Atributo opcional que contiene la delegación o municipio del domicilio</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="Estado" type="xs:string"><xs:annotation><xs:documentation>Atributo opcional que contiene el estado del domicilio</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="Pais" type="xs:string"><xs:annotation><xs:documentation>Atributo opcional que contiene el país del domicilio</xs:documentation></xs:annotation></xs:attribute>
+		<xs:attribute name="CP" type="xs:string"><xs:annotation><xs:documentation>Atributo opcional que contiene el CP del domicilio</xs:documentation></xs:annotation></xs:attribute>
+	</xs:complexType>
+	<xs:simpleType name="notas"><xs:annotation><xs:documentation>Definicón de tipo para Comentarios o notas</xs:documentation></xs:annotation><xs:restriction base="xs:string"><xs:minLength value="1"/><xs:maxLength value="200"/></xs:restriction></xs:simpleType>
+</xs:schema>

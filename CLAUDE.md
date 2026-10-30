@@ -9,6 +9,8 @@ Sin dependencias de framework ni de vtiger. El README explica uso y arquitectura
   el usuario final y `campo` como ruta del XML (`Concepto[2].Traslado[1].TasaOCuota`, sin contenedores).
 - `CfdiService`: `generate()` (XML solo si es válido), `validate()` (sin XML) y `draft()` (XML aunque
   haya violaciones, para mostrarlo con los errores marcados; nunca se sella).
+- Addendas: una clase por cliente en `src/Addendas` + su XSD en `resources/addendas` + una línea en
+  `AddendaRegistry::standard()`; nada más cambia. Ver `docs/addendas.md`.
 - Aún no incluye sellado (CSD) ni timbrado (PAC).
 
 Consumidor principal: el módulo de vtiger `../SplVtCfdi`, que la instala como repositorio composer `path`

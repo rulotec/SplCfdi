@@ -8,7 +8,7 @@ use SplCfdi\Domain\Catalogs\CatalogName;
 use SplCfdi\Infrastructure\Resources;
 
 /**
- * Copia de resources/xsd para validar: idéntica, salvo que en catCFDI.xsd los catálogos grandes se
+ * Copia de resources/xsd/sat para validar: idéntica, salvo que en catCFDI.xsd los catálogos grandes se
  * reducen a un patrón. Con la enumeración completa, libxml tarda ~0.5 s en cargar el esquema y ~40 s
  * en reportar un código postal inexistente (escribe las 95 000 claves en el mensaje). La existencia de
  * esas claves la revisa RuleCatalogos con los catálogos embebidos.
@@ -17,6 +17,9 @@ use SplCfdi\Infrastructure\Resources;
  */
 final class ValidationSchemas
 {
+    /** XSD de referencia, tal como los publica el SAT. */
+    public const SOURCE_DIR = 'xsd/sat';
+
     public const DIR = 'xsd/validacion';
 
     /** Se copian tal cual, salvo catCFDI.xsd. */

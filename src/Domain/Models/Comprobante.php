@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Models;
 
+use SplCfdi\Domain\Addendas\DatosAddenda;
+
 final class Comprobante
 {
     /** Formato de Fecha en el XML: hora local, sin zona horaria. */
@@ -15,6 +17,7 @@ final class Comprobante
      * @param string|null        $tipoCambio       requerido si la moneda no es MXN ni XXX
      * @param string|null        $confirmacion     clave del PAC cuando TipoCambio o Total exceden los límites del SAT
      * @param CfdiRelacionados[] $cfdiRelacionados un nodo por TipoRelacion
+     * @param DatosAddenda|null  $addenda          addenda del cliente; ver AddendaRegistry
      */
     public function __construct(
         public readonly string $version,
@@ -34,6 +37,7 @@ final class Comprobante
         public readonly ?string $tipoCambio = null,
         public readonly ?string $confirmacion = null,
         public readonly array $cfdiRelacionados = [],
+        public readonly ?DatosAddenda $addenda = null,
     ) {}
 
     /** La Fecha tal como aparece en el XML: hora local, sin zona horaria. */

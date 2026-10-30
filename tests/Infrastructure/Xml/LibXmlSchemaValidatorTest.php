@@ -58,6 +58,14 @@ final class LibXmlSchemaValidatorTest extends TestCase
         $this->assertStringContainsString('cfdi:Comprobante', $violaciones[0]->message);
     }
 
+    /** cfdv40.xsd declara la Addenda como xs:any estricto; cada addenda se valida aparte contra su XSD. */
+    public function testIgnoraLaAddenda(): void
+    {
+        $xml = str_replace('</cfdi:Comprobante>', '<cfdi:Addenda><fa:Datos xmlns:fa="finanzas"/></cfdi:Addenda></cfdi:Comprobante>', $this->xml());
+
+        $this->assertSame([], $this->validator->validate($xml));
+    }
+
     public function testFallaSiNoExisteElXsd(): void
     {
         $this->expectException(\RuntimeException::class);
