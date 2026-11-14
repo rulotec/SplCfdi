@@ -24,11 +24,12 @@ final class ReglasAddendasTest extends TestCase
         ?array $conceptos = null,
         ?DatosAddenda $addenda = null,
         bool $sinFolio = false,
+        ?string $folio = null,
     ): Comprobante {
         return new Comprobante(
             $c->version, $c->fecha, $c->moneda, $tipoDeComprobante ?? $c->tipoDeComprobante, $c->exportacion,
             $c->lugarExpedicion, $c->emisor, $c->receptor, $conceptos ?? $c->conceptos,
-            serie: $c->serie, folio: $sinFolio ? null : $c->folio, metodoPago: $c->metodoPago, formaPago: $c->formaPago,
+            serie: $c->serie, folio: $sinFolio ? null : ($folio ?? $c->folio), metodoPago: $c->metodoPago, formaPago: $c->formaPago,
             tipoCambio: $c->tipoCambio, addenda: $addenda ?? $c->addenda,
         );
     }
@@ -85,5 +86,26 @@ final class ReglasAddendasTest extends TestCase
         $concepto = new Concepto('84111506', '1', 'H87', 'EA', 'Frontera', '100.00', '02', [new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.080000')]);
 
         $this->assertCodigos(['addenda-tasa-iva'], $this->check(self::con(EjemplosAddenda::stellantis(), conceptos: [$concepto])));
+    }
+
+    public function testMpnpRequiereFolioDeHasta20Caracteres(): void
+    {
+        $this->assertCodigos(['addenda-requiere-folio'], $this->check(self::con(EjemplosAddenda::metalsa(), sinFolio: true)));
+
+        $violaciones = $this->check(self::con(EjemplosAddenda::metalsa(), folio: str_repeat('1', 21)));
+        $this->assertCodigos(['addenda-longitud'], $violaciones);
+        $this->assertSame('Folio', $violaciones[0]->campo);
+    }
+
+    public function testMpnpRechazaOrdenesDeCompraDeMasDeOchoDigitos(): void
+    {
+        $c = EjemplosAddenda::metalsa();
+        $datos = new DatosAddenda('MPNP', (array) $c->addenda?->valores, [
+            [...((array) $c->addenda?->conceptos)[0], 'ordenCompra' => '123456789'],
+        ]);
+
+        $violaciones = $this->check(self::con($c, addenda: $datos));
+        $this->assertCodigos(['addenda-patron'], $violaciones);
+        $this->assertSame('Addenda.Concepto[1].ordenCompra', $violaciones[0]->campo);
     }
 }

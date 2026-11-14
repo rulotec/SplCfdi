@@ -1,0 +1,394 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:MPNP="http://www.metalsa.com.mx/Addenda/MPNP" targetNamespace="http://www.metalsa.com.mx/Addenda/MPNP" attributeFormDefault="unqualified" elementFormDefault="qualified">
+  <xs:element name="factura">
+    <xs:annotation>
+      <xs:documentation>Definición de Schema para el envío de información adicional de la factura electrónica para Metalsa</xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="cancelaciones" maxOccurs="unbounded" minOccurs="0">
+          <xs:complexType>
+            <xs:attribute name="cancelaSustituye" use="optional">
+              <xs:annotation>
+                <xs:documentation>Contiene el número de factura que cancela y sustituye</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="15" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="moneda" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Nodo requerido que especifica el tipo de moneda en el cual se esta facturando</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="tipoMoneda" use="required">
+              <xs:annotation>
+                <xs:documentation>Código de tipo de moneda utilizado para la factura (MXN: Pesos; USD: Dolares; EUR: Euros)</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="3" />
+                  <xs:pattern value="AFN|EUR|ALL|DZD|USD|AOA|XCD|ARS|AMD|AWG|AUD|AZN|BSD|BHD|BDT|BBD|BYR|BZD|XOF|BMD|BTN|INR|BOB|BOV|BAM|BWP|NOK|BRL|BND|BGN|BIF|KHR|XAF|CAD|CVE|KYD|CLF|CLP|CNY|COP|COU|KMF|CDF|NZD|CRC|HRK|CUC|CUP|ANG|CZK|DKK|DJF|DOP|EGP|SVC|ERN|ETB|FKP|FJD|XPF|GMD|GEL|GHS|GIP|GTQ|GBP|GNF|GYD|HTG|HNL|HKD|HUF|ISK|IDR|XDR|IRR|IQD|ILS|JMD|JPY|JOD|KZT|KES|KPW|KRW|KWD|KGS|LAK|LBP|LSL|ZAR|LRD|LYD|CHF|LTL|MOP|MKD|MGA|MWK|MYR|MVR|MRO|MUR|XUA|MXN|MXP|MXV|MDL|MNT|MAD|MZN|MMK|NAD|NPR|NIO|NGN|OMR|PKR|PAB|PGK|PYG|PEN|PHP|PLN|QAR|RON|RUB|RWF|SHP|WST|STD|SAR|RSD|SCR|SLL|SGD|XSU|SBD|SOS|SSP|LKR|SDG|SRD|SZL|SEK|CHE|CHW|SYP|TWD|TJS|TZS|THB|TOP|TTD|TND|TRY|TMT|UGX|UAH|AED|USN|UYI|UYU|UZS|VUV|VEF|VND|YER|ZMW|ZWL" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="proveedor" type="MPNP:Locacion" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Número de proveedor =RFC y Nombre del proveedor= Razon Social</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="destino" type="MPNP:Locacion" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Localidad requerida que identifica la planta de donde se entrega el material.</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="nota" type="MPNP:notas" minOccurs="0" nillable="false" maxOccurs="unbounded">
+          <xs:annotation>
+            <xs:documentation>Nodo opcional que contiene notas o comentarios de la factura a nivel de encabezado</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="archivo" minOccurs="0">
+          <xs:annotation>
+            <xs:documentation>Archivos adjuntos requeridos para procesar la factura</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="archivo" use="optional">
+              <xs:annotation>
+                <xs:documentation>Archivo</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string" />
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="tipoArchivo" use="optional">
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="3" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="cuentaCorreo">
+          <xs:annotation>
+            <xs:documentation>cuenta correo receptor</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="cuentaCorreo" use="required">
+              <xs:annotation>
+                <xs:documentation>cuenta de correo del receptor de metalsa</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="60" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="cargosCreditos" maxOccurs="unbounded" minOccurs="0">
+          <xs:complexType>
+            <xs:attribute name="descripcionCredito" use="optional">
+              <xs:annotation>
+                <xs:documentation>Nota de cancelaciones o de rechazos</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="200" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="montoLinea" use="optional">
+              <xs:annotation>
+                <xs:documentation>Se aceptan signos en este campo para diferencias </xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:decimal">
+                  <xs:fractionDigits value="2" />
+                  <xs:whiteSpace value="collapse" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+            <xs:attribute name="factura" use="optional">
+              <xs:annotation>
+                <xs:documentation>número de factura a la que se refiere el cargo o el credito</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="1" />
+                  <xs:maxLength value="15" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="segmentoProducto" minOccurs="0">
+          <xs:annotation>
+            <xs:documentation>Números de referencia adicionales</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:attribute name="segmentoProducto" use="optional">
+              <xs:annotation>
+                <xs:documentation>Atributo que contiene el numero de segmento</xs:documentation>
+              </xs:annotation>
+              <xs:simpleType>
+                <xs:restriction base="xs:string">
+                  <xs:minLength value="0" />
+                  <xs:maxLength value="4" />
+                </xs:restriction>
+              </xs:simpleType>
+            </xs:attribute>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="partes" minOccurs="1" maxOccurs="1">
+          <xs:annotation>
+            <xs:documentation>Nodo requerido que contiene los nodos de cada una de las partes que se facturan</xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="part" maxOccurs="unbounded" minOccurs="1">
+                <xs:annotation>
+                  <xs:documentation>Nodo requerido que contiene el detalle de la parte facturada</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="nota" minOccurs="0" maxOccurs="unbounded">
+                      <xs:annotation>
+                        <xs:documentation>Nodo que contiene notas referentes a la parte facturada (Descripcion)</xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="numeroLinea" use="required">
+                    <xs:annotation>
+                      <xs:documentation />
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:int">
+                        <xs:minInclusive value="1" />
+                        <xs:maxInclusive value="650" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="numeroParte" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Contiene el numero de parte del proveedor</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="30" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="cantidad" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Contiene la cantidad de partes facturadas</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:decimal">
+                        <xs:fractionDigits value="14" />
+                        <xs:whiteSpace value="collapse" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="unidadMedida" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Atributo requerido que contiene la unidad de medida de la parte</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="4" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="precioUnitario" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Atributo requerido que contiene el precio unitario de la parte</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:decimal">
+                        <xs:fractionDigits value="8" />
+                        <xs:whiteSpace value="collapse" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="fechaRecibo" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Contiene la fecha de recibo en planta  de bienes o servicios.
+
+                                                AAAA-MM-DD
+
+                                            </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:date" />
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="numeroRecibo" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Contiene el número de recibo en planta  de bienes o servicios.
+                                            </xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:pattern value="[a-zA-Z0-9]+" />
+                        <xs:maxLength value="10" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="descripcion" use="required">
+                    <xs:annotation>
+                      <xs:documentation>Descripcion de la parte</xs:documentation>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:string">
+                        <xs:minLength value="1" />
+                        <xs:maxLength value="200" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                  <xs:attribute name="ordencompra" use="required">
+                    <xs:annotation>
+                      <xs:appinfo>Atributo que contiene el numero de Orden de Compra de Metalsa</xs:appinfo>
+                    </xs:annotation>
+                    <xs:simpleType>
+                      <xs:restriction base="xs:integer">
+                        <xs:maxInclusive value="99999999" />
+                        <xs:whiteSpace value="collapse" />
+                      </xs:restriction>
+                    </xs:simpleType>
+                  </xs:attribute>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="tipoDocumento" use="required">
+        <xs:annotation>
+          <xs:documentation>Atributo requerido que define el tipo de documentos</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="MPNP" id="DOC_1">
+              <xs:annotation>
+                <xs:documentation>(MPNP)Identifica al tipo de documento Proveedor No Productivo </xs:documentation>
+              </xs:annotation>
+            </xs:enumeration>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="tipoDocumentoFiscal" use="required">
+        <xs:annotation>
+          <xs:documentation>FA: Factura; CR: Nota de Credito;</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="2" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="version" use="required" fixed="1.0">
+        <xs:annotation>
+          <xs:documentation>Atributo requerido que especifica la version del Schema utilizado</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:whiteSpace fixed="false" value="collapse" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="serie" use="optional">
+        <xs:annotation>
+          <xs:documentation>Serie del documento: en conjunto con el folio no pueden rebasar  30 posiciones para METALSA</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="30" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="folioFiscal" use="required">
+        <xs:annotation>
+          <xs:documentation>Atributo requerido para el número de folio fiscal electrónico de la factura: en conjunto con la serie no pueden rebasar  20 posiciones para METALSA</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="20" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="fecha" use="optional">
+        <xs:annotation>
+          <xs:documentation>Atributo requerido en el que se define la fecha de la Factura</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:date">
+            <xs:whiteSpace value="collapse" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="referenciaProveedor" use="optional">
+        <xs:annotation>
+          <xs:documentation>Espacio para insertar la referencia de la factura.</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="15" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <xs:complexType name="Locacion">
+    <xs:annotation>
+      <xs:documentation>Definición de tipo para expresar localidades</xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="codigo" use="required">
+      <xs:annotation>
+        <xs:documentation>Código o Número de Localidad</xs:documentation>
+      </xs:annotation>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:minLength value="1" />
+          <xs:maxLength value="13" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="nombre" use="required">
+      <xs:annotation>
+        <xs:documentation>Atributo que contiene el nombre de la localidad</xs:documentation>
+      </xs:annotation>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:minLength value="1" />
+          <xs:maxLength value="256" />
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:simpleType name="notas">
+    <xs:annotation>
+      <xs:documentation>Definición de tipo para Comentarios o notas</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:minLength value="0" />
+      <xs:maxLength value="200" />
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

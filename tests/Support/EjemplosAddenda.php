@@ -52,6 +52,14 @@ final class EjemplosAddenda
                 // El ejemplo trae el texto con doble codificación UTF-8.
                 'RevisiÃ³n' => 'Revisión',
             ], $standard],
+            // El generador anterior dejaba vacíos los atributos obligatorios y escribía TipoDocumentoFiscal con
+            // mayúscula; el ejemplo ya trae los datos que pide el XSD.
+            'METALSA.xml' => [self::metalsa(), [], $standard],
+            'SANMINA.xml' => [self::sanmina(), [
+                // El ejemplo declara xsi con el namespace de XML Schema: su schemaLocation no lo admite el XSD.
+                ' xmlns:xsi="http://www.w3.org/2001/XMLSchema"' => '',
+                ' xsi:schemaLocation="https://webapps2.sanmina-sci.com/partners-access https://webapps2.sanmina-sci.com/partners-access/addenda-sanmina.xsd"' => '',
+            ], $standard],
         ];
     }
 
@@ -157,6 +165,41 @@ final class EjemplosAddenda
             ], [
                 ['numero' => '10', 'nota' => 'Servicio de prueba de septiembre.'],
                 ['numero' => '20', 'nota' => 'Revisión de prueba de septiembre.'],
+            ]),
+        );
+    }
+
+    public static function metalsa(): Comprobante
+    {
+        return self::comprobante(
+            '2024-05-16T11:00:00', '1006',
+            new Receptor('XIA190128J61', 'XENON INDUSTRIAL ARTICLES', '76343', '601', 'G03'),
+            [self::concepto('84111506', '400.000000', 'H87', 'PZA', 'SERVICIO DE PRUEBA', '2.500000')],
+            new DatosAddenda('MPNP', [
+                'segmentoProducto' => 'S001',
+                'referenciaProveedor' => 'REF01',
+                'destinoCodigo' => 'PL01',
+                'destinoNombre' => 'PLANTA DE PRUEBA',
+                'cuentaCorreo' => 'receptor@example.com',
+            ], [
+                ['ordenCompra' => '90000001', 'numeroParte' => 'PARTE-001', 'fechaRecibo' => '2024-05-15', 'numeroRecibo' => 'REC001'],
+            ]),
+        );
+    }
+
+    public static function sanmina(): Comprobante
+    {
+        return self::comprobante(
+            '2026-10-29T15:58:05', '1005',
+            new Receptor('URE180429TM6', 'UNIVERSIDAD ROBOTICA ESPAÑOLA', '86991', '601', 'G03'),
+            [
+                self::concepto('84111506', '500.000000', 'H87', 'PZA', 'SERVICIO DE PRUEBA A', '2.000000'),
+                self::concepto('84111506', '800.000000', 'H87', 'PZA', 'SERVICIO DE PRUEBA B', '1.500000'),
+            ],
+            new DatosAddenda('SANMINA', [
+                'correoProveedor' => 'cobranza@example.com',
+                'codigoCliente' => '100001',
+                'ordenCompra' => 'NO APLICA',
             ]),
         );
     }

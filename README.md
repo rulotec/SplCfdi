@@ -99,7 +99,7 @@ new Comprobante(
 
 Cada addenda declara los datos que necesita (`AddendaRegistry::todas()`, `campos()`) y calcula el resto
 del CFDI. Para agregarla a un CFDI ya timbrado: `CfdiFactory::createAddendaService()->add($xml, $comprobante)`.
-Incluidas: American Axle (IEX), Stellantis (PPY) y Volkswagen (PSV). Detalle y cómo agregar una
+Incluidas: American Axle (IEX), Metalsa (MPNP), Stellantis (PPY), Volkswagen (PSV) y Sanmina. Detalle y cómo agregar una
 nueva: [`docs/addendas.md`](docs/addendas.md).
 
 ### Opciones de `CfdiFactory::create()`
@@ -119,7 +119,7 @@ nueva: [`docs/addendas.md`](docs/addendas.md).
 - Traslados Tasa, Cuota (IEPS por cuota) y Exento; retenciones; IEPS incluido en la base del IVA.
 - Más de 50 validaciones: formato, reglas del SAT (ObjetoImp, c_TasaOCuota, MetodoPago/FormaPago,
   régimen por tipo de persona, RFC genérico, TipoCambio…) y el XSD con mensajes en español.
-- Addendas de clientes (American Axle, Stellantis, Volkswagen) con su XSD, extensibles sin tocar el núcleo.
+- Addendas de clientes (American Axle, Metalsa, Stellantis, Volkswagen, Sanmina) con su XSD, extensibles sin tocar el núcleo.
 - 15 catálogos del SAT embebidos y una herramienta para detectar cuándo se desfasan.
 
 Detalle y pendientes en [`docs/funcionalidades.md`](docs/funcionalidades.md).

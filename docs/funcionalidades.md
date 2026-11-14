@@ -109,7 +109,7 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
    - `CfdiFactory::create(validarXsd: false)` omite este paso.
 
 ### Addendas
-- American Axle (IEX), Stellantis (PPY) y Volkswagen PSV, validadas por campo y contra el XSD de cada
+- American Axle (IEX), Metalsa (MPNP), Stellantis (PPY), Volkswagen (PSV) y Sanmina, validadas por campo y contra el XSD de cada
   cliente; se agregan al generar o a un CFDI ya timbrado. Un host puede registrar las suyas. Ver
   [`addendas.md`](addendas.md).
 

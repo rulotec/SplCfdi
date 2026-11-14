@@ -23,16 +23,25 @@ final class AddendaSchemaValidatorTest extends TestCase
     /** @return iterable<string, array{string}> */
     public static function ejemplos(): iterable
     {
-        foreach (['AMERICAN_AXLE.xml', 'Stellantis.xml', 'VOLKSWAGEN.xml', 'MARELLI_MEXICANA.xml', 'SANMINA.xml'] as $archivo) {
+        foreach (['AMERICAN_AXLE.xml', 'Stellantis.xml', 'VOLKSWAGEN.xml', 'METALSA.xml', 'MARELLI_MEXICANA.xml'] as $archivo) {
             yield $archivo => [$archivo];
         }
     }
 
-    /** Las de Marelli y Sanmina no están registradas: no se revisan. */
+    /** La de Marelli no está registrada: no se revisa. */
     #[DataProvider('ejemplos')]
     public function testLasAddendasDeLosEjemplosCumplenConSuEsquema(string $archivo): void
     {
         $this->assertSame([], $this->validator()->validate(EjemplosAddenda::xml($archivo)));
+    }
+
+    /** El generador anterior declaraba xsi con el namespace de XML Schema; la addenda generada no lo lleva. */
+    public function testRechazaElSchemaLocationDelEjemploDeSanmina(): void
+    {
+        $violaciones = $this->validator()->validate(EjemplosAddenda::xml('SANMINA.xml'));
+
+        $this->assertSame(['xsd-no-permitido'], array_map(fn (Violation $v) => $v->code, $violaciones));
+        $this->assertStringContainsString('schemaLocation', $violaciones[0]->message);
     }
 
     public function testTraduceLosErroresConLaRutaDentroDeLaAddenda(): void

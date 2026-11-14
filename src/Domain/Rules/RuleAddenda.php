@@ -132,16 +132,11 @@ final class RuleAddenda implements Rule
             return new Violation('addenda-tipo', "$prefijo $error.", $ruta);
         }
 
-        $longitud = mb_strlen($valor);
-        if ($campo->longitudMaxima !== null && $longitud > $campo->longitudMaxima) {
-            return new Violation('addenda-longitud', sprintf(
-                '%s tiene %d caracteres; el máximo es %d.', $prefijo, $longitud, $campo->longitudMaxima
-            ), $ruta);
-        }
-        if ($campo->longitudMinima !== null && $longitud < $campo->longitudMinima) {
-            return new Violation('addenda-longitud', sprintf(
-                '%s tiene %d caracteres; el mínimo es %d.', $prefijo, $longitud, $campo->longitudMinima
-            ), $ruta);
+        $longitud = Formato::longitud(
+            $valor, "$lugar: {$campo->etiqueta}", $ruta, 'addenda-longitud', $campo->longitudMinima, $campo->longitudMaxima,
+        );
+        if ($longitud !== null) {
+            return $longitud;
         }
         if ($campo->patron !== null && preg_match('/^(?:' . str_replace('/', '\/', $campo->patron) . ')$/Du', $valor) !== 1) {
             return new Violation('addenda-patron', sprintf(

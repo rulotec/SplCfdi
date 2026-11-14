@@ -9,7 +9,7 @@ use DOMElement;
 use SplCfdi\Domain\Addendas\{Addenda, CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
 use SplCfdi\Domain\Contracts\DecimalMath;
 use SplCfdi\Domain\Models\{ComprobanteCalculado, Concepto};
-use SplCfdi\Domain\Rules\Violation;
+use SplCfdi\Domain\Rules\{Formato, Violation};
 use SplCfdi\Infrastructure\Resources;
 
 /**
@@ -137,5 +137,26 @@ abstract class AddendaBase implements Addenda
             $this->nombre(),
             $calculado->comprobante->tipoDeComprobante,
         ), 'Addenda.' . self::TIPO_DOCUMENTO)];
+    }
+
+    /**
+     * Para las addendas que copian Serie y Folio del comprobante: el Folio es obligatorio y ambos tienen un
+     * máximo de caracteres.
+     *
+     * @return Violation[]
+     */
+    protected function reglaFolio(ComprobanteCalculado $calculado, int $maximoFolio, int $maximoSerie): array
+    {
+        $c = $calculado->comprobante;
+        if ($c->folio === null || trim($c->folio) === '') {
+            return [new Violation('addenda-requiere-folio', "Addenda {$this->nombre()}: el comprobante necesita Folio.", 'Folio')];
+        }
+
+        $lugar = "Addenda {$this->nombre()}";
+
+        return array_values(array_filter([
+            Formato::longitud($c->folio, "$lugar: Folio", 'Folio', 'addenda-longitud', maximo: $maximoFolio),
+            $c->serie === null ? null : Formato::longitud($c->serie, "$lugar: Serie", 'Serie', 'addenda-longitud', maximo: $maximoSerie),
+        ]));
     }
 }

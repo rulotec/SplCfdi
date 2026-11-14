@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi\Domain\Addendas;
 
-use SplCfdi\Addendas\{AmericanAxleIex, StellantisPpy, VolkswagenPsv};
+use SplCfdi\Addendas\{AmericanAxleIex, MetalsaMpnp, Sanmina, StellantisPpy, VolkswagenPsv};
 use SplCfdi\Domain\Contracts\DecimalMath;
 
 /** Las addendas disponibles, por clave. */
@@ -30,8 +30,10 @@ final class AddendaRegistry
     {
         return new self(
             new AmericanAxleIex($math),
+            new MetalsaMpnp($math),
             new StellantisPpy($math),
             new VolkswagenPsv($math),
+            new Sanmina($math),
         );
     }
 

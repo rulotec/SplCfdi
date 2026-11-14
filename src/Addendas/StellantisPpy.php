@@ -60,21 +60,11 @@ final class StellantisPpy extends AddendaBase
 
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
-        $violaciones = $this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO);
+        $violaciones = [
+            ...$this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            ...$this->reglaFolio($calculado, 15, 15),
+        ];
         $c = $calculado->comprobante;
-
-        if ($c->folio === null || trim($c->folio) === '') {
-            $violaciones[] = new Violation('addenda-requiere-folio', "Addenda {$this->nombre()}: el comprobante necesita Folio.", 'Folio');
-        } elseif (mb_strlen($c->folio) > 15) {
-            $violaciones[] = new Violation('addenda-longitud', sprintf(
-                'Addenda %s: el Folio "%s" tiene %d caracteres; el máximo es 15.', $this->nombre(), $c->folio, mb_strlen($c->folio)
-            ), 'Folio');
-        }
-        if ($c->serie !== null && mb_strlen($c->serie) > 15) {
-            $violaciones[] = new Violation('addenda-longitud', sprintf(
-                'Addenda %s: la Serie "%s" tiene %d caracteres; el máximo es 15.', $this->nombre(), $c->serie, mb_strlen($c->serie)
-            ), 'Serie');
-        }
 
         $tasas = $this->tasasIva($calculado);
         foreach (array_keys($tasas) as $tasa) {

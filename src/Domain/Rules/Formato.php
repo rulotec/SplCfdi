@@ -39,6 +39,27 @@ final class Formato
             : self::digitos('formato-clave-prod-serv', $valor, $etiqueta, $campo, ClaveNumericaFormat::DIGITOS_CLAVE_PROD_SERV);
     }
 
+    /** Texto con $minimo a $maximo caracteres (no bytes); null si es válido o no hay límites. */
+    public static function longitud(
+        string $valor,
+        string $etiqueta,
+        string $campo,
+        string $code,
+        ?int $minimo = null,
+        ?int $maximo = null,
+    ): ?Violation {
+        $longitud = mb_strlen($valor);
+        $limite = match (true) {
+            $maximo !== null && $longitud > $maximo => "el máximo es $maximo",
+            $minimo !== null && $longitud < $minimo => "el mínimo es $minimo",
+            default => null,
+        };
+
+        return $limite === null
+            ? null
+            : new Violation($code, sprintf('%s "%s" tiene %d caracteres; %s.', $etiqueta, $valor, $longitud, $limite), $campo);
+    }
+
     private static function digitos(string $code, string $valor, string $etiqueta, string $campo, int $digitos): Violation
     {
         return new Violation($code, sprintf(

@@ -9,12 +9,14 @@ agregarse antes o después de timbrar.
 | Clave | Cliente | Clase | XSD |
 |---|---|---|---|
 | `IEX` | American Axle (AAM), versión 1.1 | `Addendas\AmericanAxleIex` | `resources/addendas/IEX.xsd` |
+| `MPNP` | Metalsa, proveedor no productivo, versión 1.0 | `Addendas\MetalsaMpnp` | `resources/addendas/MPNP.xsd` |
 | `PPY` | Stellantis (Chrysler) México, versión 1.0 | `Addendas\StellantisPpy` | `resources/addendas/PPY.xsd` |
 | `PSV` | Volkswagen de México, servicios, versión 1.0 | `Addendas\VolkswagenPsv` | `resources/addendas/PSV.xsd` |
+| `SANMINA` | Sanmina-SCI (sin detalle por concepto) | `Addendas\Sanmina` | `resources/addendas/SANMINA.xsd` |
 
 Ejemplos en `tests/Fixtures/addendas`: CFDI reales del generador anterior con los datos sustituidos
-por ficticios (RFC de prueba del SAT, importes, contactos, códigos); la estructura es la original. Marelli y Sanmina se
-implementarán cuando tengamos su XSD.
+por ficticios (RFC de prueba del SAT, importes, contactos, códigos); la estructura es la original. Marelli se
+implementará cuando tengamos su XSD.
 
 ## Modelo
 
@@ -52,7 +54,7 @@ new DatosAddenda('PSV',
 |---|---|---|
 | Clave inexistente, campos que la addenda no define, conceptos inexistentes | `RuleAddenda` | `Addenda`, `Addenda.otro`, `Addenda.Concepto[4]` |
 | Requerido, tipo, longitud, patrón, opciones de cada campo | `RuleAddenda` | `Addenda.codigoProveedor`, `Addenda.Concepto[2].posicion` |
-| Reglas propias (`Addenda::reglas()`), p. ej. PPY exige Folio | La addenda | La que corresponda (`Folio`, `Addenda.tipoDocumentoFiscal`) |
+| Reglas propias (`Addenda::reglas()`), p. ej. PPY y MPNP exigen Folio | La addenda | La que corresponda (`Folio`, `Addenda.tipoDocumentoFiscal`) |
 | El nodo generado contra el XSD del cliente | `AddendaSchemaValidator` | Ruta dentro de la addenda: `Addenda.Partes.Parte.posicion` |
 
 Los `campo` de `RuleAddenda` usan los nombres de `CampoAddenda`, para que el host los relacione con
@@ -127,6 +129,11 @@ Diferencias conocidas con los ejemplos del generador anterior (FacturacionCFDI),
 - IEX: el texto se escribe en UTF-8 correcto (el ejemplo trae doble codificación: "RevisiÃ³n").
 - PSV: `tipoMoneda` es la Moneda del CFDI; para mandar `MXP` como el ejemplo se captura el campo
   `tipoMoneda`.
+- MPNP: el generador anterior escribía `TipoDocumentoFiscal` (el XSD pide `tipoDocumentoFiscal`) y dejaba
+  vacíos atributos obligatorios (`codigo` de destino, `fechaRecibo`, `numeroRecibo`, `ordencompra`…); el
+  ejemplo ya trae esos datos. `proveedor/@codigo` es el RFC del emisor salvo que se capture `codigoProveedor`.
+- SANMINA: el ejemplo declara `xmlns:xsi` con el namespace de XML Schema y un `xsi:schemaLocation` que el
+  XSD no admite; la addenda generada no lo lleva.
 
 Si algún portal rechaza alguna de estas, se agrega la opción en esa addenda.
 
@@ -136,5 +143,6 @@ Si algún portal rechaza alguna de estas, se agrega la opción en esa addenda.
   FacturacionCFDI agregaba después de timbrar), `Origen`/`Destino`/`Medidas` (PSV),
   `origen`/`receiving`/`proyecto`/`cargosCreditos` (PPY), `Nota` del comprobante, `Cancelaciones`
   múltiples, `fechaRecibo` (PPY).
-- Marelli (`xmlns:fa="finanzas"`) y Sanmina: sin XSD.
+- Marelli (`xmlns:fa="finanzas"`): sin XSD.
+- MPNP: los nodos opcionales `archivo` y `cargosCreditos`.
 - Montos de línea con descuento: hoy se usa el `Importe` del concepto (cantidad × valor unitario).
