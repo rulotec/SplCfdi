@@ -96,6 +96,91 @@ horas fallaría). Fuera de `cfdi:Addenda` el XML no cambia; si ya tenía una, se
   mapeado a ese nombre.
 - Addendas propias del host: `CfdiFactory::create(addendas: AddendaRegistry::standard($math)->con(new MiAddenda()))`.
 
+### Formulario de captura
+
+Para no crear un campo en el host por cada dato de cada addenda (sobre todo los de cada concepto), el host
+entrega lo que ya sabe y el usuario captura o corrige el resto en un formulario. Todo vive en
+`Application\AddendaForm` y no depende de ningún framework:
+
+| Clase | Qué es |
+|---|---|
+| `AddendaDefaults` | Lo que el host ya tiene: `DefaultValue(valor, origen)` por campo (y por concepto). Un campo de nivel Concepto en `values` vale para todos los conceptos. |
+| `AddendaOverrides` | Lo que el usuario capturó en esa factura. `fromArray()` lee lo que manda el formulario (descarta lo que no es texto); `toArray()` es lo que el host guarda. |
+| `AddendaValues` | El valor de cada campo: lo capturado o, si no, el del host. `datos()` es el `DatosAddenda` para generar el CFDI. |
+| `AddendaFormService` | `build($comprobante, $clave, $defaults, $overrides, $avisos)`: arma el formulario y revisa la addenda resultante. `$avisos` (índice del concepto => texto) son las líneas que el host quiere que el usuario revise, p. ej. porque cambió su producto. |
+| `AddendaForm` | El resultado: `datos()` y `toArray()`, el contrato con la página del formulario. |
+
+```php
+$form = CfdiFactory::createAddendaFormService()->build(
+    $comprobante, 'PSV',
+    new AddendaDefaults(['codigoProveedor' => new DefaultValue('1234567890', 'Configuración')]),
+    AddendaOverrides::fromArray($guardado),
+);
+echo json_encode($form->toArray());
+```
+
+Reglas de los valores:
+
+- Lo capturado gana sobre el valor del host; una cadena vacía lo borra (la addenda va sin ese dato o se
+  reporta como faltante).
+- Capturar el mismo valor que el del host no cuenta como modificado: si el valor del host cambia después,
+  la factura lo sigue.
+- Lo capturado para conceptos que la factura ya no tiene, o para nombres que la addenda no define, no se usa.
+- `build()` ignora la addenda que traiga `$comprobante`; usa la que resulta de valores y capturas.
+
+`build()` revisa solo la addenda, no las reglas del SAT: el formato del comprobante (sin él no se puede
+calcular), `RuleAddenda` y, cuando esas reglas pasan, el XSD del cliente (antes solo repetiría lo mismo).
+
+#### Contrato (`AddendaForm::toArray()`)
+
+```jsonc
+{
+  "addenda": { "key": "PSV", "name": "Volkswagen de México – Servicios (PSV)" },  // name null si la clave no existe
+  "fields": [                       // en el orden de Addenda::campos(); vacío si la clave no existe
+    {
+      "name": "codigoProveedor", "label": "Código de proveedor",
+      "level": "cliente",           // cliente | comprobante | concepto
+      "type": "texto",              // texto | entero | decimal | opcion
+      "required": true, "minLength": null, "maxLength": null,
+      "pattern": "[0-9]{10}",       // expresión regular sin delimitadores; debe cumplirse completa
+      "options": [],                // [{ "value": "VW", "label": "Volkswagen México" }] con type opcion
+      "help": "diez dígitos, asignado por VW",
+      "fallback": null              // qué usa la addenda si se deja vacío, p. ej. "La Moneda del CFDI"
+    }
+  ],
+  "header": {                       // campos de nivel cliente y comprobante
+    "codigoProveedor": { "value": "1234567890", "default": "1234567890", "source": "Configuración", "overridden": false }
+  },
+  "lines": [
+    {
+      "index": 0, "number": 1,      // index es el que usan AddendaOverrides y violations
+      "productKey": "86101705",     // ClaveProdServ
+      "description": "Servicio de prueba", "quantity": "1.000000", "unit": "MON", "unitPrice": "5000.000000",
+      "amount": "5000.000000",      // Importe del CFDI; null si la factura tiene errores de formato y no se pudo calcular
+      "notice": null,               // aviso del host para esta línea
+      "values": {                   // campos de nivel concepto
+        "posicion": { "value": "1", "default": null, "source": null, "overridden": true }
+      }
+    }
+  ],
+  "violations": [
+    {
+      "code": "addenda-requerido", "message": "Addenda …: falta Posición en la orden de compra.",
+      "path": "Addenda.Concepto[1].posicion",
+      "field": "posicion", "line": 0  // ambos null si no corresponde a un campo del formulario
+    }
+  ],
+  "valid": false
+}
+```
+
+- Cada celda: `value` es lo que va en la addenda (null si queda vacía), `default` y `source` lo que da el
+  host (para mostrarlo y restablecerlo), `overridden` si el usuario capturó algo distinto.
+- `field` y `line` ubican la violación en un campo; con ambos null (un problema de la factura, o una ruta
+  del XSD dentro del XML de la addenda como `Addenda.Proveedor.codigo`) la página la muestra aparte.
+- Lo que el formulario envía es `AddendaOverrides::toArray()`:
+  `{ "values": { "remision": "REM02" }, "lines": { "0": { "posicion": "1" } } }`.
+
 ## Agregar una addenda
 
 1. Copia el XSD del cliente a `resources/addendas/<CLAVE>.xsd`.

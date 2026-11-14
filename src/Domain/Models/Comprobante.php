@@ -45,4 +45,14 @@ final class Comprobante
     {
         return $this->fecha->format(self::FORMATO_FECHA);
     }
+
+    /** Copia con otra addenda (null la quita). */
+    public function conAddenda(?DatosAddenda $addenda): self
+    {
+        return new self(
+            $this->version, $this->fecha, $this->moneda, $this->tipoDeComprobante, $this->exportacion, $this->lugarExpedicion,
+            $this->emisor, $this->receptor, $this->conceptos, $this->serie, $this->folio, $this->metodoPago, $this->formaPago,
+            $this->informacionGlobal, $this->tipoCambio, $this->confirmacion, $this->cfdiRelacionados, $addenda,
+        );
+    }
 }

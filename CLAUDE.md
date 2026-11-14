@@ -11,6 +11,9 @@ Sin dependencias de framework ni de vtiger. El README explica uso y arquitectura
   haya violaciones, para mostrarlo con los errores marcados; nunca se sella).
 - Addendas: una clase por cliente en `src/Addendas` + su XSD en `resources/addendas` + una línea en
   `AddendaRegistry::standard()`; nada más cambia. Ver `docs/addendas.md`.
+- Formulario de captura de addendas (`Application/AddendaForm`): valores del host + capturas del usuario;
+  `AddendaForm::toArray()` es el contrato JSON con la UI de React de SplVtCfdi, que debe poder reutilizarse
+  fuera de vtiger. Cambiarlo es cambiar esa UI.
 - Aún no incluye sellado (CSD) ni timbrado (PAC).
 
 Consumidor principal: el módulo de vtiger `../SplVtCfdi`, que la instala como repositorio composer `path`

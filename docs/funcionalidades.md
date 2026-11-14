@@ -112,6 +112,8 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
 - American Axle (IEX), Metalsa (MPNP), Stellantis (PPY), Volkswagen (PSV) y Sanmina, validadas por campo y contra el XSD de cada
   cliente; se agregan al generar o a un CFDI ya timbrado. Un host puede registrar las suyas. Ver
   [`addendas.md`](addendas.md).
+- Formulario de captura: valores del host más lo que el usuario captura o corrige, con las violaciones
+  ubicadas en su campo (contrato JSON para la página del formulario).
 
 ### Catálogos
 - 15 catálogos embebidos generados desde `catCFDI.xsd` (los tres grandes se cargan solo al

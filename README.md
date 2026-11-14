@@ -99,6 +99,8 @@ new Comprobante(
 
 Cada addenda declara los datos que necesita (`AddendaRegistry::todas()`, `campos()`) y calcula el resto
 del CFDI. Para agregarla a un CFDI ya timbrado: `CfdiFactory::createAddendaService()->add($xml, $comprobante)`.
+Para que el usuario capture en un formulario los datos que el host no tiene:
+`CfdiFactory::createAddendaFormService()` (contrato JSON en [`docs/addendas.md`](docs/addendas.md)).
 Incluidas: American Axle (IEX), Metalsa (MPNP), Stellantis (PPY), Volkswagen (PSV) y Sanmina. Detalle y cómo agregar una
 nueva: [`docs/addendas.md`](docs/addendas.md).
 
@@ -156,5 +158,5 @@ Por separado: `composer analyse`, `composer test`, `composer catalogs`.
 | `Addendas` | Una clase por addenda de cliente (su XSD en `resources/addendas`) |
 | `Domain/Services` | `InvoiceCalculator` |
 | `Infrastructure` | bcmath, generador de XML, validación XSD, addendas en el XML, carga e importación de catálogos |
-| `Application` | `CfdiService`, `AddendaService` (post-timbrado) y `CfdiResult` |
+| `Application` | `CfdiService`, `AddendaService` (post-timbrado), `AddendaForm` (formulario de captura) y `CfdiResult` |
 | `CfdiFactory` | Punto de entrada: arma todo con los valores por defecto |

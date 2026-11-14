@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SplCfdi;
 
+use SplCfdi\Application\AddendaForm\AddendaFormService;
 use SplCfdi\Application\AddendaService;
 use SplCfdi\Application\CfdiService;
 use SplCfdi\Domain\Addendas\AddendaRegistry;
@@ -69,6 +70,27 @@ final class CfdiFactory
             FormatRuleSet::standard($config, $catalogs),
             new RuleAddenda($addendas),
             new AddendaWriter($addendas),
+            $validarXsd ? new AddendaSchemaValidator($addendas) : null,
+        );
+    }
+
+    /** Para el formulario donde el usuario captura los datos de la addenda que el host no tiene. */
+    public static function createAddendaFormService(
+        ?DecimalConfiguration $config = null,
+        ?Catalogs $catalogs = null,
+        bool $validarXsd = true,
+        ?AddendaRegistry $addendas = null,
+    ): AddendaFormService {
+        $config ??= DecimalConfiguration::sat();
+        $catalogs ??= EmbeddedCatalogs::load();
+        $addendas ??= AddendaRegistry::standard(new BcMathDecimalMath($config));
+
+        return new AddendaFormService(
+            $addendas,
+            self::createCalculator($config, $catalogs),
+            FormatRuleSet::standard($config, $catalogs),
+            new RuleAddenda($addendas),
+            new AddendaXmlGenerator(new SimpleCfdiXmlGenerator(), new AddendaWriter($addendas)),
             $validarXsd ? new AddendaSchemaValidator($addendas) : null,
         );
     }

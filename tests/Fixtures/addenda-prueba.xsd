@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- For AddendaDePrueba: stricter than its field definition (two digits instead of three), so the rules
+     can pass while the XSD fails. -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:prueba:addenda" elementFormDefault="qualified">
+  <xs:element name="Datos">
+    <xs:complexType>
+      <xs:attribute name="codigo" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{2}"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
