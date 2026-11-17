@@ -12,6 +12,7 @@ use SplCfdi\Domain\Catalogs\Catalogs;
 use SplCfdi\Domain\Configuration\DecimalConfiguration;
 use SplCfdi\Domain\Contracts\Clock;
 use SplCfdi\Domain\Contracts\TipoCambioFix;
+use SplCfdi\Domain\Contracts\XmlSchemaValidator;
 use SplCfdi\Domain\Rules\{FormatRuleSet, RuleAddenda, RuleSet};
 use SplCfdi\Domain\Services\{ImpuestoRetenidoAggregator, ImpuestoTrasladadoAggregator, InvoiceCalculator};
 use SplCfdi\Infrastructure\Addendas\{AddendaSchemaValidator, AddendaWriter, AddendaXmlGenerator};
@@ -50,8 +51,18 @@ final class CfdiFactory
                 RuleSet::standard($clock ?? new SystemClock(), $catalogs, $math, $tipoCambioFix),
                 new RuleAddenda($addendas),
             ]),
-            $validarXsd ? new SchemaValidators(new LibXmlSchemaValidator(), new AddendaSchemaValidator($addendas)) : null,
+            $validarXsd ? self::createSchemaValidator($config, $addendas) : null,
         );
+    }
+
+    /** Valida un CFDI contra cfdv40.xsd y cada addenda contra su XSD (sin las reglas del SAT). */
+    public static function createSchemaValidator(
+        ?DecimalConfiguration $config = null,
+        ?AddendaRegistry $addendas = null,
+    ): XmlSchemaValidator {
+        $addendas ??= AddendaRegistry::standard(new BcMathDecimalMath($config ?? DecimalConfiguration::sat()));
+
+        return new SchemaValidators(new LibXmlSchemaValidator(), new AddendaSchemaValidator($addendas));
     }
 
     /** Para agregar la addenda a un CFDI ya timbrado. */

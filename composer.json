@@ -19,7 +19,8 @@
 		}
 	},
 	"bin" : [
-		"bin/cfdi-catalogs"
+		"bin/cfdi-catalogs",
+		"bin/cfdi-validate"
 	],
 	"scripts" : {
 		"test" : "phpunit",

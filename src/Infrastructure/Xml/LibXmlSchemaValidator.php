@@ -14,11 +14,12 @@ use SplCfdi\Domain\Rules\Violation;
  * errores traducidos; nunca lanza por datos inválidos.
  *
  * Mientras no haya sellado, a un XML sin Sello/NoCertificado/Certificado se le ponen valores ficticios:
- * el XSD los exige, pero no dependen de los datos del host. El TimbreFiscalDigital no hace falta: va en
- * Complemento, que es opcional, y lo agrega el PAC.
+ * el XSD los exige, pero no dependen de los datos del host.
  *
- * La Addenda se quita antes de validar: cfdv40.xsd la declara como xs:any estricto, que exige conocer el
- * esquema de su contenido. Cada addenda se valida aparte contra el suyo (AddendaSchemaValidator).
+ * La Addenda y el Complemento se quitan antes de validar: cfdv40.xsd los declara como xs:any estricto, que
+ * exige conocer el esquema de su contenido. Cada addenda se valida aparte contra el suyo
+ * (AddendaSchemaValidator); los complementos (TimbreFiscalDigital, que agrega el PAC, y los demás) no se
+ * validan, porque no se incluyen sus XSD.
  */
 final class LibXmlSchemaValidator implements XmlSchemaValidator
 {
@@ -63,8 +64,8 @@ final class LibXmlSchemaValidator implements XmlSchemaValidator
                     $root->setAttribute($atributo, $valor);
                 }
             }
-            foreach (self::addendas($dom) as $addenda) {
-                $root->removeChild($addenda);
+            foreach ([...self::addendas($dom), ...self::hijos($dom, 'Complemento')] as $nodo) {
+                $root->removeChild($nodo);
             }
         }
 
@@ -78,14 +79,24 @@ final class LibXmlSchemaValidator implements XmlSchemaValidator
      */
     public static function addendas(DOMDocument $dom): array
     {
-        $addendas = [];
+        return self::hijos($dom, 'Addenda');
+    }
+
+    /**
+     * Los nodos cfdi:$nombre hijos directos del comprobante.
+     *
+     * @return DOMElement[]
+     */
+    private static function hijos(DOMDocument $dom, string $nombre): array
+    {
+        $hijos = [];
         foreach ($dom->documentElement->childNodes ?? [] as $nodo) {
-            if ($nodo instanceof DOMElement && $nodo->namespaceURI === self::NS_CFDI && $nodo->localName === 'Addenda') {
-                $addendas[] = $nodo;
+            if ($nodo instanceof DOMElement && $nodo->namespaceURI === self::NS_CFDI && $nodo->localName === $nombre) {
+                $hijos[] = $nodo;
             }
         }
 
-        return $addendas;
+        return $hijos;
     }
 
     /** @return DOMDocument|string el documento, o el mensaje de por qué no está bien formado */

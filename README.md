@@ -138,6 +138,17 @@ php bin/cfdi-catalogs xls --xls=catCFDI.xls   # decimales, tipo de persona, c_Ta
 
 Qué se genera, qué se mantiene a mano y el procedimiento completo: [`docs/catalogos.md`](docs/catalogos.md).
 
+## Validar un XML desde la terminal
+
+```bash
+php bin/cfdi-validate factura.xml otra.xml
+```
+
+Valida cada CFDI contra `cfdv40.xsd` y sus addendas contra el XSD de cada una
+(`CfdiFactory::createSchemaValidator()`). No revisa las reglas del SAT, que trabajan sobre el `Comprobante` y no
+sobre el XML, ni los complementos (`TimbreFiscalDigital`…), cuyos XSD no se incluyen. Sale con 0 si todos son
+válidos, 1 si alguno tiene errores y 2 si no se pudo leer un archivo.
+
 ## Desarrollo
 
 ```bash

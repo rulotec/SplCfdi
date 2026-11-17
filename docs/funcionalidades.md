@@ -103,10 +103,14 @@ estable, `message` en español para el usuario final y `campo` (ruta en el XML, 
      por CFDI y hasta 40 s en reportar un código postal inexistente. Esas claves las revisa
      `RuleCatalogos`.
    - Mientras no haya sellado, el validador pone valores ficticios en `Sello`, `NoCertificado` y
-     `Certificado`. El `TimbreFiscalDigital` no hace falta: va en `Complemento`, que el XSD trata
-     como opcional, y lo agrega el PAC.
+     `Certificado`.
+   - El `Complemento` se quita antes de validar: el XSD lo declara como `xs:any` estricto y no se
+     incluyen los XSD de los complementos, así que el `TimbreFiscalDigital` de un CFDI timbrado no se
+     valida.
    - La `Addenda` se valida aparte, contra el XSD de cada cliente (ver [`addendas.md`](addendas.md)).
    - `CfdiFactory::create(validarXsd: false)` omite este paso.
+   - `CfdiFactory::createSchemaValidator()` hace solo este paso sobre cualquier XML; lo usa
+     `bin/cfdi-validate` para validar archivos desde la terminal.
 
 ### Addendas
 - American Axle (IEX), Metalsa (MPNP), Stellantis (PPY), Volkswagen (PSV) y Sanmina, validadas por campo y contra el XSD de cada

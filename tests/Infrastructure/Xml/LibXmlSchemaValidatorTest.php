@@ -66,6 +66,18 @@ final class LibXmlSchemaValidatorTest extends TestCase
         $this->assertSame([], $this->validator->validate($xml));
     }
 
+    /** cfdv40.xsd declara el Complemento como xs:any estricto y no se incluyen los XSD de los complementos. */
+    public function testIgnoraElComplemento(): void
+    {
+        $xml = str_replace(
+            '</cfdi:Comprobante>',
+            '<cfdi:Complemento><tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" Version="1.1"/></cfdi:Complemento></cfdi:Comprobante>',
+            $this->xml(),
+        );
+
+        $this->assertSame([], $this->validator->validate($xml));
+    }
+
     public function testFallaSiNoExisteElXsd(): void
     {
         $this->expectException(\RuntimeException::class);
