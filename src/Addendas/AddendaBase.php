@@ -8,7 +8,7 @@ use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{Addenda, CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
 use SplCfdi\Domain\Contracts\DecimalMath;
-use SplCfdi\Domain\Models\{ComprobanteCalculado, Concepto};
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado, Concepto};
 use SplCfdi\Domain\Rules\{Formato, Violation};
 use SplCfdi\Infrastructure\Resources;
 
@@ -26,6 +26,11 @@ abstract class AddendaBase implements Addenda
     public function esquema(): ?string
     {
         return Resources::path('addendas/' . $this->clave() . '.xsd');
+    }
+
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda($this->clave());
     }
 
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
@@ -112,23 +117,37 @@ abstract class AddendaBase implements Addenda
     }
 
     /**
-     * El capturado o, si no, el que corresponde al TipoDeComprobante.
+     * Para porDefecto(): el tipo de documento que corresponde al TipoDeComprobante, si hay uno.
      *
      * @param array<string, string> $porTipoDeComprobante TipoDeComprobante => tipo de documento del cliente
+     *
+     * @return array<string, string>
      */
-    protected function tipoDocumento(ComprobanteCalculado $calculado, DatosAddenda $datos, array $porTipoDeComprobante): ?string
+    protected function tipoDocumentoPorDefecto(Comprobante $comprobante, array $porTipoDeComprobante): array
     {
-        return $datos->valor(self::TIPO_DOCUMENTO) ?? $porTipoDeComprobante[$calculado->comprobante->tipoDeComprobante] ?? null;
+        $tipo = $porTipoDeComprobante[$comprobante->tipoDeComprobante] ?? null;
+
+        return $tipo === null ? [] : [self::TIPO_DOCUMENTO => $tipo];
     }
 
     /**
-     * @param array<string, string> $porTipoDeComprobante
+     * Para porDefecto(): el campo $nombre de cada concepto con su unidad (ver unidad()).
+     *
+     * @return array<int, array<string, string>>
+     */
+    protected function unidadesPorDefecto(Comprobante $comprobante, string $nombre, ?int $longitud = null): array
+    {
+        return array_values(array_map(fn (Concepto $concepto) => [$nombre => $this->unidad($concepto, $longitud)], $comprobante->conceptos));
+    }
+
+    /**
+     * Sin tipo de documento capturado ni uno que corresponda al TipoDeComprobante.
      *
      * @return Violation[]
      */
-    protected function reglaTipoDocumento(ComprobanteCalculado $calculado, DatosAddenda $datos, array $porTipoDeComprobante): array
+    protected function reglaTipoDocumento(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
-        if ($this->tipoDocumento($calculado, $datos, $porTipoDeComprobante) !== null) {
+        if ($datos->valor(self::TIPO_DOCUMENTO) !== null) {
             return [];
         }
 

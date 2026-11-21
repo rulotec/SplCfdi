@@ -7,7 +7,7 @@ namespace SplCfdi\Tests\Support;
 use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{Addenda, CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
-use SplCfdi\Domain\Models\ComprobanteCalculado;
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado};
 
 /** Addenda mínima, sin XSD, para probar el mecanismo sin depender de las de clientes reales. */
 final class AddendaDePrueba implements Addenda
@@ -41,6 +41,11 @@ final class AddendaDePrueba implements Addenda
             new CampoAddenda('nombre', 'Nombre', NivelCampo::Comprobante, longitudMinima: 2, longitudMaxima: 5),
             new CampoAddenda('orden', 'Orden', NivelCampo::Concepto, requerido: true),
         ];
+    }
+
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda($this->clave());
     }
 
     public function esquema(): ?string

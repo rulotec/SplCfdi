@@ -55,6 +55,7 @@ final class EjemplosAddenda
             // El generador anterior dejaba vacíos los atributos obligatorios y escribía TipoDocumentoFiscal con
             // mayúscula; el ejemplo ya trae los datos que pide el XSD.
             'METALSA.xml' => [self::metalsa(), [], $standard],
+            'MARELLI_MEXICANA.xml' => [self::marelli(), [], $standard],
             'SANMINA.xml' => [self::sanmina(), [
                 // El ejemplo declara xsi con el namespace de XML Schema: su schemaLocation no lo admite el XSD.
                 ' xmlns:xsi="http://www.w3.org/2001/XMLSchema"' => '',
@@ -77,6 +78,9 @@ final class EjemplosAddenda
     /** El nodo dentro de cfdi:Addenda, en forma canónica (C14N exclusiva: sin namespaces que no se usan). */
     public static function addendaCanonica(string $xml): string
     {
+        // C14N rechaza namespaces relativos (Marelli usa xmlns:fa="finanzas"): para comparar se hacen absolutos.
+        $xml = (string) preg_replace('/xmlns:(\w+)="([^":\/]+)"/', 'xmlns:$1="urn:relativo:$2"', $xml);
+
         $dom = new DOMDocument();
         $dom->preserveWhiteSpace = false;
         $dom->loadXML($xml);
@@ -115,7 +119,6 @@ final class EjemplosAddenda
                 'codigoProveedor' => '1234567890',
                 'correoContacto' => 'contacto@example.com',
                 'codigoImpuesto' => '1A',
-                'tipoMoneda' => 'MXP',
                 'remision' => 'REM01',
                 'solicitanteNombre' => 'SOLICITANTE DE PRUEBA',
                 'solicitanteCorreo' => 'solicitante@example.com',
@@ -204,16 +207,36 @@ final class EjemplosAddenda
         );
     }
 
-    /** @param Concepto[] $conceptos */
-    private static function comprobante(string $fecha, string $folio, Receptor $receptor, array $conceptos, DatosAddenda $addenda): Comprobante
+    public static function marelli(): Comprobante
     {
+        return self::comprobante(
+            '2026-01-28T15:26:03', '1004',
+            new Receptor('XIA190128J61', 'XENON INDUSTRIAL ARTICLES', '76343', '601', 'G03'),
+            [self::concepto('81112200', '1.000000', 'E48', 'SER', 'SERVICIO DE PRUEBA', '1500.000000')],
+            new DatosAddenda('MARELLI', [], [
+                ['ordenCompra' => '900002', 'posicion' => '1', 'numeroParte' => '00-0-000'],
+            ]),
+            moneda: 'USD', tipoCambio: '18.5000',
+        );
+    }
+
+    /** @param Concepto[] $conceptos */
+    private static function comprobante(
+        string $fecha,
+        string $folio,
+        Receptor $receptor,
+        array $conceptos,
+        DatosAddenda $addenda,
+        string $moneda = 'MXN',
+        string $tipoCambio = '1',
+    ): Comprobante {
         return new Comprobante(
             version: '4.0',
             fecha: new DateTimeImmutable($fecha, new DateTimeZone('America/Mexico_City')),
-            moneda: 'MXN', tipoDeComprobante: 'I', exportacion: '01', lugarExpedicion: '42501',
+            moneda: $moneda, tipoDeComprobante: 'I', exportacion: '01', lugarExpedicion: '42501',
             emisor: new Emisor('EKU9003173C9', 'ESCUELA KEMPER URGATE', '601'),
             receptor: $receptor, conceptos: $conceptos,
-            folio: $folio, metodoPago: 'PPD', formaPago: '99', tipoCambio: '1',
+            folio: $folio, metodoPago: 'PPD', formaPago: '99', tipoCambio: $tipoCambio,
             addenda: $addenda,
         );
     }

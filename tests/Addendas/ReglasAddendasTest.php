@@ -81,6 +81,44 @@ final class ReglasAddendasTest extends TestCase
         $this->assertSame('Addenda.Concepto[1].ammendment', $violaciones[0]->campo);
     }
 
+    /** El XSD solo admite Requisicion y ReferenciaProveedor junto con la orden de compra: sin ella se perderían. */
+    public function testIexConRequisicionOReferenciaRequiereOrdenDeCompra(): void
+    {
+        $c = EjemplosAddenda::americanAxle();
+        $valores = array_diff_key((array) $c->addenda?->valores, ['ordenCompra' => true, 'requisicion' => true, 'referenciaProveedor' => true]);
+        $datos = new DatosAddenda('IEX', $valores, [['referenciaProveedor' => '700001'], ['ordenCompra' => '900001', 'requisicion' => '800001']]);
+
+        $violaciones = $this->check(self::con($c, addenda: $datos));
+
+        $this->assertCodigos(['addenda-requerido'], $violaciones);
+        $this->assertSame('Addenda.Concepto[1].ordenCompra', $violaciones[0]->campo);
+        $this->assertStringContainsString('referencia del proveedor', $violaciones[0]->message);
+    }
+
+    public function testIexSinOrdenDeCompraNiSusReferenciasCumple(): void
+    {
+        $c = EjemplosAddenda::americanAxle();
+        $valores = array_diff_key((array) $c->addenda?->valores, ['ordenCompra' => true, 'requisicion' => true, 'referenciaProveedor' => true]);
+
+        $this->assertCodigos([], $this->check(self::con($c, addenda: new DatosAddenda('IEX', $valores))));
+    }
+
+    /** El XSD de Marelli solo admite MXN, USD y EUR. */
+    public function testMarelliRechazaOtraMoneda(): void
+    {
+        $c = EjemplosAddenda::marelli();
+        $enLibras = new Comprobante(
+            $c->version, $c->fecha, 'GBP', $c->tipoDeComprobante, $c->exportacion, $c->lugarExpedicion, $c->emisor,
+            $c->receptor, $c->conceptos, folio: $c->folio, metodoPago: $c->metodoPago, formaPago: $c->formaPago,
+            tipoCambio: '23.10', addenda: $c->addenda,
+        );
+
+        $violaciones = $this->check($enLibras);
+
+        $this->assertCodigos(['addenda-moneda'], $violaciones);
+        $this->assertSame('Moneda', $violaciones[0]->campo);
+    }
+
     public function testPpyRechazaUnaTasaDeIvaSinCodigoDeCargo(): void
     {
         $concepto = new Concepto('84111506', '1', 'H87', 'EA', 'Frontera', '100.00', '02', [new ImpuestoTrasladado('002', TipoFactor::Tasa, '0.080000')]);

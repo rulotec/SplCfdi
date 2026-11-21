@@ -8,12 +8,15 @@ use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
 use SplCfdi\Domain\Contracts\DecimalMath;
-use SplCfdi\Domain\Models\{ComprobanteCalculado, ConceptoCalculado};
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado, ConceptoCalculado};
 
 /** Volkswagen de México, addenda PSV (servicios), versión 1.0. */
 final class VolkswagenPsv extends AddendaBase
 {
     private const TIPOS_DOCUMENTO = ['I' => 'FA', 'E' => 'CR'];
+
+    /** Claves de moneda que VW usa en lugar de las del SAT. */
+    private const MONEDAS_VW = ['MXN' => 'MXP'];
 
     /** @param int $longitudNota caracteres por nodo Nota (el XSD admite 254); las más largas se reparten */
     public function __construct(DecimalMath $math, private readonly int $longitudNota = 254)
@@ -47,7 +50,7 @@ final class VolkswagenPsv extends AddendaBase
             new CampoAddenda('codigoImpuesto', 'Código de impuesto', NivelCampo::Cliente, requerido: true,
                 longitudMinima: 2, longitudMaxima: 2, ayuda: 'dos caracteres, viene en la orden de compra (p. ej. 1A)'),
             new CampoAddenda('tipoMoneda', 'Moneda', NivelCampo::Cliente, longitudMinima: 3, longitudMaxima: 5,
-                ayuda: 'solo si VW pide una clave distinta a la del CFDI (p. ej. MXP)', porDefecto: 'La Moneda del CFDI'),
+                ayuda: 'solo si VW pide una clave distinta', porDefecto: 'La Moneda del CFDI; MXN se envía como MXP'),
             $this->campoTipoDocumento(['FA' => 'Factura', 'CA' => 'Nota de cargo', 'CR' => 'Nota de crédito'], 'FA en Ingreso, CR en Egreso'),
             new CampoAddenda('cancelaSustituye', 'Factura que cancela y sustituye', NivelCampo::Comprobante, longitudMaxima: 16),
             new CampoAddenda('remision', 'Remisión', NivelCampo::Comprobante, longitudMaxima: 16),
@@ -62,9 +65,18 @@ final class VolkswagenPsv extends AddendaBase
         ];
     }
 
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda(
+            $this->clave(),
+            [...$this->tipoDocumentoPorDefecto($comprobante, self::TIPOS_DOCUMENTO), 'tipoMoneda' => self::MONEDAS_VW[$comprobante->moneda] ?? $comprobante->moneda],
+            $this->unidadesPorDefecto($comprobante, 'unidadMedida', 3),
+        );
+    }
+
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
-        return $this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO);
+        return $this->reglaTipoDocumento($calculado, $datos);
     }
 
     public function crear(DOMDocument $dom, ComprobanteCalculado $calculado, DatosAddenda $datos): DOMElement
@@ -76,13 +88,13 @@ final class VolkswagenPsv extends AddendaBase
 
         return $this->nodo($dom, 'Factura', [
             'version' => '1.0',
-            'tipoDocumentoFiscal' => $this->tipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            'tipoDocumentoFiscal' => $datos->valor(self::TIPO_DOCUMENTO),
             'tipoDocumentoVWM' => 'PSV',
             'division' => $datos->valor('division'),
         ], [
             $cancela === null ? null : $this->nodo($dom, 'Cancelaciones', ['cancelaSustituye' => $cancela]),
             $this->nodo($dom, 'Moneda', [
-                'tipoMoneda' => $datos->valor('tipoMoneda') ?? $c->moneda,
+                'tipoMoneda' => $datos->valor('tipoMoneda'),
                 'tipoCambio' => $this->decimales($c->tipoCambio ?? '1', 4),
                 'codigoImpuesto' => $codigoImpuesto,
             ]),
@@ -116,7 +128,7 @@ final class VolkswagenPsv extends AddendaBase
             'numeroMaterial' => $datos->valorConcepto($i, 'numeroMaterial'),
             'descripcionMaterial' => $this->recortar($concepto->descripcion, 40),
             'cantidadMaterial' => $this->decimales($concepto->cantidad, 4),
-            'unidadMedida' => $datos->valorConcepto($i, 'unidadMedida') ?? $this->unidad($concepto, 3),
+            'unidadMedida' => $datos->valorConcepto($i, 'unidadMedida'),
             'precioUnitario' => $this->decimales($concepto->valorUnitario, 5),
             'montoLinea' => $this->decimales($calculado->importe, 2),
             'codigoImpuesto' => $codigoImpuesto,

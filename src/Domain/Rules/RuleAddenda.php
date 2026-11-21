@@ -33,6 +33,8 @@ final class RuleAddenda implements Rule
         }
 
         $campos = [];
+        $datos = $datos->completadoCon($addenda->porDefecto($calculado->comprobante));
+
         foreach ($addenda->campos() as $campo) {
             $campos[$campo->nombre] = $campo;
         }

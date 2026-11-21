@@ -46,7 +46,7 @@ final class AddendaWriter
 
         $nodo = $dom->createElementNS(LibXmlSchemaValidator::NS_CFDI, ($root->prefix ?: 'cfdi') . ':Addenda');
         $root->appendChild($nodo);
-        $nodo->appendChild($addenda->crear($dom, $calculado, $datos));
+        $nodo->appendChild($addenda->crear($dom, $calculado, $datos->completadoCon($addenda->porDefecto($calculado->comprobante))));
 
         $dom->formatOutput = $formatear;
 

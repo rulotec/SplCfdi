@@ -7,7 +7,7 @@ namespace SplCfdi\Addendas;
 use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
-use SplCfdi\Domain\Models\{ComprobanteCalculado, ConceptoCalculado};
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado, ConceptoCalculado};
 
 /** Metalsa, addenda MPNP (proveedor no productivo), versión 1.0. */
 final class MetalsaMpnp extends AddendaBase
@@ -55,10 +55,19 @@ final class MetalsaMpnp extends AddendaBase
         ];
     }
 
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda(
+            $this->clave(),
+            [...$this->tipoDocumentoPorDefecto($comprobante, self::TIPOS_DOCUMENTO), 'codigoProveedor' => $comprobante->emisor->rfc],
+            $this->unidadesPorDefecto($comprobante, 'unidadMedida', 4),
+        );
+    }
+
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
         return [
-            ...$this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            ...$this->reglaTipoDocumento($calculado, $datos),
             ...$this->reglaFolio($calculado, 20, 30),
         ];
     }
@@ -71,7 +80,7 @@ final class MetalsaMpnp extends AddendaBase
 
         return $this->nodo($dom, 'factura', [
             'tipoDocumento' => 'MPNP',
-            'tipoDocumentoFiscal' => $this->tipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            'tipoDocumentoFiscal' => $datos->valor(self::TIPO_DOCUMENTO),
             'version' => '1.0',
             'serie' => $c->serie,
             'folioFiscal' => $c->folio,
@@ -81,7 +90,7 @@ final class MetalsaMpnp extends AddendaBase
             $cancela === null ? null : $this->nodo($dom, 'cancelaciones', ['cancelaSustituye' => $cancela]),
             $this->nodo($dom, 'moneda', ['tipoMoneda' => $c->moneda]),
             $this->nodo($dom, 'proveedor', [
-                'codigo' => $datos->valor('codigoProveedor') ?? $c->emisor->rfc,
+                'codigo' => $datos->valor('codigoProveedor'),
                 'nombre' => $this->recortar($c->emisor->nombre, 256),
             ]),
             $this->nodo($dom, 'destino', [
@@ -107,7 +116,7 @@ final class MetalsaMpnp extends AddendaBase
             'numeroLinea' => (string) ($i + 1),
             'numeroParte' => $datos->valorConcepto($i, 'numeroParte'),
             'cantidad' => $concepto->cantidad,
-            'unidadMedida' => $datos->valorConcepto($i, 'unidadMedida') ?? $this->unidad($concepto, 4),
+            'unidadMedida' => $datos->valorConcepto($i, 'unidadMedida'),
             'precioUnitario' => $concepto->valorUnitario,
             'fechaRecibo' => $datos->valorConcepto($i, 'fechaRecibo'),
             'numeroRecibo' => $datos->valorConcepto($i, 'numeroRecibo'),

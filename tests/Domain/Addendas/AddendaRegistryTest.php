@@ -20,7 +20,7 @@ final class AddendaRegistryTest extends TestCase
 
     public function testIncluyeLasAddendasDeLaBiblioteca(): void
     {
-        $this->assertSame(['IEX', 'MPNP', 'PPY', 'PSV', 'SANMINA'], array_keys($this->standard()->todas()));
+        $this->assertSame(['IEX', 'MARELLI', 'MPNP', 'PPY', 'PSV', 'SANMINA'], array_keys($this->standard()->todas()));
     }
 
     /** El namespace de cada addenda es el targetNamespace de su XSD: así la reconoce AddendaSchemaValidator. */
@@ -54,7 +54,7 @@ final class AddendaRegistryTest extends TestCase
         $this->assertNull($standard->get('PRUEBA'));
         $this->assertInstanceOf(AddendaDePrueba::class, $conPrueba->get('PRUEBA'));
         $this->assertSame($conPrueba->get('PRUEBA'), $conPrueba->porNamespace(AddendaDePrueba::NAMESPACE));
-        $this->assertCount(6, $conPrueba->todas());
+        $this->assertCount(7, $conPrueba->todas());
     }
 
     public function testRechazaDosAddendasConLaMismaClave(): void

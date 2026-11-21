@@ -30,6 +30,8 @@ final class AddendaFormService
 
     /**
      * $comprobante's own addenda is ignored: the one built from $defaults and $overrides replaces it.
+     * What $defaults doesn't have, the addenda's own defaults fill in (Addenda::porDefecto()), so the user
+     * sees the value that will be used.
      *
      * @param array<int, string> $lineNotices line index (from 0) => what the user should check on that line,
      *                                        e.g. that its product changed since the data was typed
@@ -42,7 +44,9 @@ final class AddendaFormService
         array $lineNotices = [],
     ): AddendaForm {
         $addenda = $this->addendas->get($key);
-        $values = $addenda === null ? null : new AddendaValues($addenda, $defaults, $overrides, count($comprobante->conceptos));
+        $values = $addenda === null ? null : new AddendaValues(
+            $addenda, $defaults->withFallback(AddendaDefaults::ofAddenda($addenda, $comprobante)), $overrides, count($comprobante->conceptos),
+        );
         $form = new AddendaForm($key, $addenda, $values, $comprobante->conceptos, $lineNotices);
         $comprobante = $comprobante->conAddenda($form->datos());
 

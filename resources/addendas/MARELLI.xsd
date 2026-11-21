@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:fa="finanzas"
+    targetNamespace="finanzas"
+    elementFormDefault="qualified"
+    attributeFormDefault="unqualified">
+    <!-- Nodo principal -->
+    <xs:element name="Datos">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="AddendaComercial">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Finanzas"
+                                        minOccurs="1"
+                                        maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="PO"
+                                                  type="xs:string"
+                                                  use="required"/>
+
+                                    <xs:attribute name="Linea"
+                                                  type="xs:positiveInteger"
+                                                  use="required"/>
+
+                                    <xs:attribute name="Part"
+                                                  type="xs:string"
+                                                  use="required"/>
+
+                                    <xs:attribute name="Moneda"
+                                                  use="required">
+                                        <xs:simpleType>
+                                            <xs:restriction
+                                                base="xs:string">
+                                                <xs:enumeration value="MXN"/>
+                                                <xs:enumeration value="USD"/>
+                                                <xs:enumeration value="EUR"/>
+                                            </xs:restriction>
+                                        </xs:simpleType>
+                                    </xs:attribute>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

@@ -9,14 +9,14 @@ agregarse antes o después de timbrar.
 | Clave | Cliente | Clase | XSD |
 |---|---|---|---|
 | `IEX` | American Axle (AAM), versión 1.1 | `Addendas\AmericanAxleIex` | `resources/addendas/IEX.xsd` |
+| `MARELLI` | Marelli Mexicana (namespace `finanzas`) | `Addendas\MarelliFinanzas` | `resources/addendas/MARELLI.xsd` |
 | `MPNP` | Metalsa, proveedor no productivo, versión 1.0 | `Addendas\MetalsaMpnp` | `resources/addendas/MPNP.xsd` |
 | `PPY` | Stellantis (Chrysler) México, versión 1.0 | `Addendas\StellantisPpy` | `resources/addendas/PPY.xsd` |
 | `PSV` | Volkswagen de México, servicios, versión 1.0 | `Addendas\VolkswagenPsv` | `resources/addendas/PSV.xsd` |
 | `SANMINA` | Sanmina-SCI (sin detalle por concepto) | `Addendas\Sanmina` | `resources/addendas/SANMINA.xsd` |
 
 Ejemplos en `tests/Fixtures/addendas`: CFDI reales del generador anterior con los datos sustituidos
-por ficticios (RFC de prueba del SAT, importes, contactos, códigos); la estructura es la original. Marelli se
-implementará cuando tengamos su XSD.
+por ficticios (RFC de prueba del SAT, importes, contactos, códigos); la estructura es la original.
 
 ## Modelo
 
@@ -26,7 +26,10 @@ documento salen de `ComprobanteCalculado`. Así el host no sabe nada de cada cli
 los campos que la addenda declare.
 
 `CampoAddenda` trae `nombre`, `etiqueta`, `tipo` (Texto, Entero, Decimal, Opcion), `requerido`,
-longitudes, `patron`, `opciones`, `ayuda`, `porDefecto` (qué se usa si se omite) y `nivel`:
+longitudes, `patron`, `opciones`, `ayuda`, `porDefecto` (qué se usa si se omite, en palabras) y `nivel`.
+El valor que se usa lo da `Addenda::porDefecto($comprobante)` (la Moneda, la Unidad de cada concepto…):
+`RuleAddenda` y el XML completan con él lo que el host deja vacío, y el formulario lo muestra como valor
+por omisión.
 
 | Nivel | Qué es | Ejemplos | Dónde lo guardaría el host |
 |---|---|---|---|
@@ -121,8 +124,9 @@ echo json_encode($form->toArray());
 
 Reglas de los valores:
 
-- Lo capturado gana sobre el valor del host; una cadena vacía lo borra (la addenda va sin ese dato o se
-  reporta como faltante).
+- Lo capturado gana sobre el valor del host, y el del host sobre el de la addenda (`porDefecto()`, con
+  `CampoAddenda::$porDefecto` como `source`). Una cadena vacía lo borra: la addenda usa su valor por
+  omisión si tiene, o va sin ese dato o se reporta como faltante.
 - Capturar el mismo valor que el del host no cuenta como modificado: si el valor del host cambia después,
   la factura lo sigue.
 - Lo capturado para conceptos que la factura ya no tiene, o para nombres que la addenda no define, no se usa.
@@ -188,10 +192,14 @@ calcular), `RuleAddenda` y, cuando esas reglas pasan, el XSD del cliente (antes 
    - `clave()`, `nombre()`, `namespace()` (el `targetNamespace` del XSD).
    - `campos()`: solo lo que el CFDI no trae, con las restricciones del XSD (longitudes, patrones,
      opciones) para que el usuario vea el error en su campo antes que el del XSD.
-   - `crear()`: arma el nodo con `nodo()` en el orden del XSD. Los decimales con `decimales()` (los que
+   - `porDefecto()`: lo que sale del comprobante cuando el dato se deja vacío (con su `porDefecto` en
+     `campos()`). `tipoDocumentoPorDefecto()` y `unidadesPorDefecto()` cubren los casos comunes.
+   - `crear()`: arma el nodo con `nodo()` en el orden del XSD. Recibe los datos ya completados con
+     `porDefecto()`, así que no repite esos valores. Los decimales con `decimales()` (los que
      admite el XSD), textos con `recortar()`, unidad con `unidad()`, notas largas con `notas()`. No debe
      lanzar con datos incompletos (el borrador se genera igual).
-   - `reglas()`: lo que no se expresa por campo (p. ej. `reglaTipoDocumento()`).
+   - `reglas()`: lo que no se expresa por campo (p. ej. `reglaTipoDocumento()`); también recibe los datos
+     completados.
 3. Regístrala en `AddendaRegistry::standard()`.
 4. Pon un CFDI real del cliente en `tests/Fixtures/addendas` y su caso en `EjemplosAddenda::todos()`:
    `EjemplosAddendaTest` comprueba que con esos datos se genera la misma addenda y que cumple su XSD.
@@ -228,6 +236,5 @@ Si algún portal rechaza alguna de estas, se agrega la opción en esa addenda.
   FacturacionCFDI agregaba después de timbrar), `Origen`/`Destino`/`Medidas` (PSV),
   `origen`/`receiving`/`proyecto`/`cargosCreditos` (PPY), `Nota` del comprobante, `Cancelaciones`
   múltiples, `fechaRecibo` (PPY).
-- Marelli (`xmlns:fa="finanzas"`): sin XSD.
 - MPNP: los nodos opcionales `archivo` y `cargosCreditos`.
 - Montos de línea con descuento: hoy se usa el `Importe` del concepto (cantidad × valor unitario).

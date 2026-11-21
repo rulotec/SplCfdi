@@ -6,7 +6,7 @@ namespace SplCfdi\Domain\Addendas;
 
 use DOMDocument;
 use DOMElement;
-use SplCfdi\Domain\Models\ComprobanteCalculado;
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado};
 use SplCfdi\Domain\Rules\Violation;
 
 /**
@@ -27,6 +27,13 @@ interface Addenda
 
     /** @return CampoAddenda[] lo que el host debe capturar */
     public function campos(): array;
+
+    /**
+     * Lo que la addenda usa para los datos que se dejan vacíos y salen del comprobante (la Moneda, la Unidad
+     * de cada concepto…); lo describe CampoAddenda::$porDefecto. Antes de reglas() y crear() los datos ya
+     * vienen completados con esto, y el formulario lo muestra como valor por omisión.
+     */
+    public function porDefecto(Comprobante $comprobante): DatosAddenda;
 
     /** Ruta del XSD con que se valida el nodo de la addenda; null si no hay. */
     public function esquema(): ?string;

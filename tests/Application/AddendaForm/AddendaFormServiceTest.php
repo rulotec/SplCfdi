@@ -126,6 +126,33 @@ final class AddendaFormServiceTest extends TestCase
         $this->assertSame(['addenda-desconocida'], array_column($datos['violations'], 'code'));
     }
 
+    /** What the addenda would use for an empty field is shown as its default, so the user sees the value. */
+    public function testTheAddendasOwnDefaultsArePrefilled(): void
+    {
+        $datos = $this->build(defaults: $this->defaults(['tipoMoneda' => '']))->toArray();
+
+        $this->assertSame(
+            ['value' => 'MXP', 'default' => 'MXP', 'source' => 'La Moneda del CFDI; MXN se envía como MXP', 'overridden' => false],
+            $datos['header']['tipoMoneda'],
+        );
+        $this->assertSame('FA', $datos['header']['tipoDocumentoFiscal']['default']);
+        $this->assertSame('MON', $datos['lines'][0]['values']['unidadMedida']['default']);
+    }
+
+    public function testTheHostsDefaultWinsOverTheAddendas(): void
+    {
+        $defaults = new AddendaDefaults([
+            ...$this->defaults()->values,
+            'tipoMoneda' => new DefaultValue('MXN', 'Configuración'),
+            'unidadMedida' => new DefaultValue('SER', 'Configuración'),
+        ]);
+
+        $datos = $this->build(defaults: $defaults)->toArray();
+
+        $this->assertSame(['value' => 'MXN', 'default' => 'MXN', 'source' => 'Configuración', 'overridden' => false], $datos['header']['tipoMoneda']);
+        $this->assertSame('SER', $datos['lines'][0]['values']['unidadMedida']['value']);
+    }
+
     /** The contract the form page consumes (docs/addendas.md describes it). */
     public function testTheContract(): void
     {

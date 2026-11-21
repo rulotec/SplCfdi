@@ -7,7 +7,8 @@ namespace SplCfdi\Addendas;
 use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
-use SplCfdi\Domain\Models\{ComprobanteCalculado, ConceptoCalculado};
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado, ConceptoCalculado};
+use SplCfdi\Domain\Rules\Violation;
 
 /** American Axle & Manufacturing (AAM), addenda IEX, versión 1.1. */
 final class AmericanAxleIex extends AddendaBase
@@ -53,9 +54,48 @@ final class AmericanAxleIex extends AddendaBase
         ];
     }
 
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda(
+            $this->clave(),
+            [...$this->tipoDocumentoPorDefecto($comprobante, self::TIPOS_DOCUMENTO)],
+            $this->unidadesPorDefecto($comprobante, 'unidadDeMedida'),
+        );
+    }
+
+    /** Los datos que el XSD solo admite en el nodo references, junto con la orden de compra. */
+    private const REFERENCIAS_DE_LA_ORDEN = ['requisicion' => 'la requisición', 'referenciaProveedor' => 'la referencia del proveedor'];
+
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
-        return $this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO);
+        return [
+            ...$this->reglaTipoDocumento($calculado, $datos),
+            ...$this->reglaReferenciasSinOrdenDeCompra($calculado, $datos),
+        ];
+    }
+
+    /**
+     * Sin orden de compra no va el nodo references, y con él se perderían la requisición y la referencia.
+     *
+     * @return Violation[]
+     */
+    private function reglaReferenciasSinOrdenDeCompra(ComprobanteCalculado $calculado, DatosAddenda $datos): array
+    {
+        $violaciones = [];
+        foreach (array_keys($calculado->comprobante->conceptos) as $i) {
+            if ($datos->valorConcepto($i, 'ordenCompra') !== null) {
+                continue;
+            }
+            $sinOrden = array_filter(self::REFERENCIAS_DE_LA_ORDEN, fn (string $nombre) => $datos->valorConcepto($i, $nombre) !== null, ARRAY_FILTER_USE_KEY);
+            if ($sinOrden !== []) {
+                $violaciones[] = new Violation('addenda-requerido', sprintf(
+                    'Addenda %s, concepto %d: %s solo se %s con la orden de compra; captura la orden de compra.',
+                    $this->nombre(), $i + 1, implode(' y ', $sinOrden), count($sinOrden) > 1 ? 'envían' : 'envía',
+                ), sprintf('Addenda.Concepto[%d].ordenCompra', $i + 1));
+            }
+        }
+
+        return $violaciones;
     }
 
     public function crear(DOMDocument $dom, ComprobanteCalculado $calculado, DatosAddenda $datos): DOMElement
@@ -64,7 +104,7 @@ final class AmericanAxleIex extends AddendaBase
 
         return $this->nodo($dom, 'Factura', [
             'tipoDocumento' => 'IEX',
-            'TipoDocumentoFiscal' => $this->tipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            'TipoDocumentoFiscal' => $datos->valor(self::TIPO_DOCUMENTO),
             'OrganizacionOperacional' => $datos->valor('organizacionOperacional'),
             'version' => '1.1',
             'Clabe' => $datos->valor('clabe'),
@@ -97,7 +137,7 @@ final class AmericanAxleIex extends AddendaBase
             'numero' => $datos->valorConcepto($i, 'numero'),
             'cantidad' => $this->decimales($concepto->cantidad, 6),
             'descripcion' => $concepto->descripcion,
-            'unidadDeMedida' => $datos->valorConcepto($i, 'unidadDeMedida') ?? $this->unidad($concepto),
+            'unidadDeMedida' => $datos->valorConcepto($i, 'unidadDeMedida'),
             'precioUnitario' => $this->decimales($concepto->valorUnitario, 6),
             'montoDeLinea' => $this->decimales($calculado->importe, 6),
         ], [

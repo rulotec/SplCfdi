@@ -8,7 +8,7 @@ use DOMDocument;
 use DOMElement;
 use SplCfdi\Domain\Addendas\{CampoAddenda, DatosAddenda, NivelCampo, TipoCampo};
 use SplCfdi\Domain\Catalogs\Claves\{Impuesto, Moneda};
-use SplCfdi\Domain\Models\{ComprobanteCalculado, ConceptoCalculado, TipoFactor};
+use SplCfdi\Domain\Models\{Comprobante, ComprobanteCalculado, ConceptoCalculado, TipoFactor};
 use SplCfdi\Domain\Rules\Violation;
 
 /** Stellantis (antes Chrysler) de México, addenda PPY, versión 1.0. */
@@ -58,10 +58,19 @@ final class StellantisPpy extends AddendaBase
         ];
     }
 
+    public function porDefecto(Comprobante $comprobante): DatosAddenda
+    {
+        return new DatosAddenda(
+            $this->clave(),
+            [...$this->tipoDocumentoPorDefecto($comprobante, self::TIPOS_DOCUMENTO)],
+            $this->unidadesPorDefecto($comprobante, 'unidadDeMedida', 3),
+        );
+    }
+
     public function reglas(ComprobanteCalculado $calculado, DatosAddenda $datos): array
     {
         $violaciones = [
-            ...$this->reglaTipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            ...$this->reglaTipoDocumento($calculado, $datos),
             ...$this->reglaFolio($calculado, 15, 15),
         ];
         $c = $calculado->comprobante;
@@ -98,7 +107,7 @@ final class StellantisPpy extends AddendaBase
 
         return $this->nodo($dom, 'factura', [
             'tipoDocumento' => 'PPY',
-            'TipoDocumentoFiscal' => $this->tipoDocumento($calculado, $datos, self::TIPOS_DOCUMENTO),
+            'TipoDocumentoFiscal' => $datos->valor(self::TIPO_DOCUMENTO),
             'version' => '1.0',
             'serie' => $c->serie,
             'folioFiscal' => $c->folio,
@@ -166,7 +175,7 @@ final class StellantisPpy extends AddendaBase
         return $this->nodo($dom, 'part', [
             'numero' => $datos->valorConcepto($i, 'numero'),
             'cantidad' => $this->decimales($concepto->cantidad, 4),
-            'unidadDeMedida' => $datos->valorConcepto($i, 'unidadDeMedida') ?? $this->unidad($concepto, 3),
+            'unidadDeMedida' => $datos->valorConcepto($i, 'unidadDeMedida'),
             'precioUnitario' => $this->decimales($concepto->valorUnitario, 4),
             'montoDeLinea' => $this->decimales($calculado->importe, 2),
         ], [

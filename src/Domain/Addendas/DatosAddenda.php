@@ -35,6 +35,29 @@ final class DatosAddenda
         return self::capturado($this->conceptos[$indice][$nombre] ?? null) ?? $this->valor($nombre);
     }
 
+    /**
+     * Estos datos con lo que les falte tomado de $respaldo (p. ej. Addenda::porDefecto()). Lo de este objeto
+     * gana siempre, también un dato de concepto puesto en $valores para todos los conceptos.
+     */
+    public function completadoCon(self $respaldo): self
+    {
+        $valores = array_filter($this->valores, fn (string $valor) => self::capturado($valor) !== null);
+        foreach ($respaldo->valores as $nombre => $valor) {
+            $valores[$nombre] ??= $valor;
+        }
+
+        $conceptos = $this->conceptos;
+        foreach ($respaldo->conceptos as $indice => $deRespaldo) {
+            foreach ($deRespaldo as $nombre => $valor) {
+                if ($this->valorConcepto($indice, $nombre) === null) {
+                    $conceptos[$indice][$nombre] = $valor;
+                }
+            }
+        }
+
+        return new self($this->clave, $valores, $conceptos);
+    }
+
     private static function capturado(?string $valor): ?string
     {
         return $valor === null || trim($valor) === '' ? null : $valor;
